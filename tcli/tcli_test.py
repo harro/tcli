@@ -794,7 +794,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('color_scheme bogus')
       mock_print.assert_called_once_with(
-          'Error: Unknown color scheme: bogus', msgtype='warning')
+          "Error: Unknown color scheme: 'bogus'", msgtype='warning')
 
   def testSafeMode(self):
     """Tests safemode toggle."""
