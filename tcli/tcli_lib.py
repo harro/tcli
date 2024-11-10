@@ -1535,22 +1535,20 @@ class TCLI(object):
 
     return '%d lines written.' % self.buffers.GetBuffer(buf).count('\n')
 
-  def _CmdToggleValue(self, command, args, append):
+  def _CmdToggleValue(self, command: str, args: list[str], append: bool):
     """Commands that can 'toggle' their value."""
 
-    if args:
-      value = args[0]
-      value = value.lower()
-      if value in ('on', 'true'):
-        bool_result = True
-      elif value in ('off', 'false'):
-        bool_result = False
-      else:
-        raise ValueError("Error: Argument must be 'on' or 'off'.")
-      setattr(self, command, bool_result)
-    else:
-      # toggle the bool value.
+    if not args:
+      # Toggle the current value if new value unspecified
       setattr(self, command, not getattr(self, command))
+      return
+
+    value = args[0].lower()
+    if value not in ('on', 'true', 'off', 'false'):
+      raise ValueError("Error: Argument must be 'on' or 'off'.")
+
+    if value in ('on', 'true'): setattr(self, command, True)
+    elif value in ('off', 'false'): setattr(self, command, False)
 
   # pylint: enable=unused-argument
   ##############################################################################

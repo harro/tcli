@@ -45,7 +45,6 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
     # Stub out as little as possible.
     tcli.command_response.tqdm = mock.MagicMock()
     tcli.TCLI._Print = mock.Mock()
-    tcli.TCLI._PrintSystem = mock.Mock()
 
   @classmethod
   def tearDownClass(cls):
