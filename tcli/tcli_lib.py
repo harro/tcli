@@ -326,7 +326,6 @@ class TCLI(object):
     self._completer_list = []
     self.interactive = False
     self.filter_engine = None
-    self.pipe = ''
     self.playback = None
     self.prompt = None
     self.safemode = False
@@ -381,7 +380,6 @@ class TCLI(object):
     tcli_obj.log = self.log
     tcli_obj.logall = self.logall
     tcli_obj.mode = self.mode
-    tcli_obj.pipe = self.pipe
     tcli_obj.playback = self.playback
     tcli_obj.record = self.record
     tcli_obj.recordall = self.recordall
@@ -1151,9 +1149,6 @@ class TCLI(object):
 
   def _Pipe(self, output:str, pipe:str='') ->str|None:
     """Creates pipe for filtering command output."""
-
-    if not pipe:
-      pipe = self.pipe
 
     if not pipe:
       return output
