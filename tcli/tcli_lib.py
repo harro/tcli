@@ -396,7 +396,7 @@ class TCLI(object):
 
   def Motd(self):
     """Display message of the day."""
-    self._PrintSystem(MOTD)
+    self._Print(MOTD, msgtype='system')
 
   def _SetFiltersFromDefaults(
       self, inv:inventory.Inventory) -> None|AttributeError:
@@ -442,7 +442,7 @@ class TCLI(object):
       # Add additional command support for Inventory library.
       self.inventory.RegisterCommands(self.cli_parser)
     except inventory.AuthError as error_message:
-      self._PrintWarning(str(error_message))
+      self._Print(str(error_message), msgtype='warning')
       raise inventory.AuthError()
 
   def _ParseRCFile(self):
@@ -467,8 +467,9 @@ class TCLI(object):
         # Silently fail if we don't find a file in the default location.
         # Warn the user if they supplied a file explicitly.
         if FLAGS.config_file != DEFAULT_CONFIGFILE:
-          self._PrintWarning(
-              'Error: Reading config file: %s' % sys.exc_info()[1])
+          self._Print(
+              'Error: Reading config file: %s' % sys.exc_info()[1],
+              msgtype='warning')
           raise EOFError()
 
   def RegisterCommands(self, cli_parser):
@@ -810,16 +811,16 @@ class TCLI(object):
       return
 
     if not explicit_cmd and self.safemode:
-      self._PrintWarning('Safe mode on, command ignored.')
+      self._Print('Safe mode on, command ignored.')
       return
 
     if FLAGS.dry_run:
       # Batch mode with dry_run set, then show what commands and devices would
       # have been sent and return.
-      self._PrintOutput('Send Commands: ', title=True)
-      self._PrintOutput('  ' + '\r  '.join(command_list))
-      self._PrintOutput('To Targets: ', title=True)
-      self._PrintOutput('  ' + ','.join(device_list))
+      self._Print('Send Commands: ', msgtype='title')
+      self._Print('  ' + '\r  '.join(command_list))
+      self._Print('To Targets: ', msgtype='title')
+      self._Print('  ' + ','.join(device_list))
       return
 
     # Response requests.
@@ -858,7 +859,8 @@ class TCLI(object):
     if not self.cmd_response.done.wait(self.timeout +5):
       # If we timeout then clear pending responses.
       self.cmd_response = command_response.CmdResponse()
-      self._PrintWarning('Timeout: timer exceeded while waiting for responses.')
+      self._Print('Timeout: timer exceeded while waiting for responses.',
+                  msgtype='warning')
     logging.debug('CmdRequests: All callbacks completed.')
 
   def TildeCmd(self, line):
@@ -875,7 +877,7 @@ class TCLI(object):
     try:
       (command, args, append) = self.cli_parser.ParseCommandLine(line)
     except ParseError as error_message:
-      self._PrintWarning(str(error_message))
+      self._Print(str(error_message), msgtype='warning')
       return
 
     # Command logging.
@@ -891,11 +893,11 @@ class TCLI(object):
 
     # Command execution.
     try:
-      self._PrintSystem(
-          self.cli_parser.ExecHandler(command, args, append))
+      result = self.cli_parser.ExecHandler(command, args, append)
+      if result: self._Print(result, msgtype='system')
     # pylint: disable=broad-except
     except ValueError as error_message:
-      self._PrintWarning(str(error_message))
+      self._Print(str(error_message), msgtype='warning')
 
   def _ExtractInlineCommands(self, command):
     # pylint: disable=missing-docstring
@@ -1021,32 +1023,35 @@ class TCLI(object):
     # Do nothing with raw output other than tagging
     # Which device/command generated it.
 
-    self._PrintOutput('#!# %s:%s #!#' %
+    self._Print('#!# %s:%s #!#' %
                       (response.device_name, response.command),
-                      title=True)
-    self._PrintOutput(self._Pipe(response.data, pipe=pipe))
+                      msgtype='title')
+    self._Print(self._Pipe(response.data, pipe=pipe))
 
   def _FormatErrorResponse(self, response):
     """Formatted error derived from response."""
 
-    self._PrintWarning('#!# %s:%s #!#\n%s' %
-                       (response.device_name, response.command, response.error))
+    self._Print('#!# %s:%s #!#\n%s' %
+                       (response.device_name, response.command, response.error),
+                       msgtype='warning')
 
   def _FormatResponse(self, response_uid_list, pipe=''):
     """Display the results from a list of responses."""
 
     # Filter required if display format is not 'raw'.
     if self.display != 'raw' and not self.filter:
-      self._PrintWarning(
-          'No filter set, cannot display in %s format' % repr(self.display))
+      self._Print(
+          'No filter set, cannot display in %s format' % repr(self.display),
+          msgtype='warning')
       return
 
     result = {}
     for response_uid in response_uid_list:
       response = self.cmd_response.GetResponse(response_uid)
       if not response:
-        self._PrintWarning(
-            'Invalid or missing response: Some output could not be displayed.')
+        self._Print(
+            'Invalid or missing response: Some output could not be displayed.',
+            msgtype='warning')
         continue
 
       # If response includes an error then print that.
@@ -1089,7 +1094,7 @@ class TCLI(object):
       except CliTableError as error_message:
         logging.debug('Parsing engine failed for device "%s".',
                       response.device_name)
-        self._PrintWarning(error_message)
+        self._Print(error_message, msgtype='warning')
         # If unable to parse then output as raw.
         self._FormatRaw(response, pipe=pipe)
         continue
@@ -1101,7 +1106,7 @@ class TCLI(object):
       # Is this the first line.
       if not result:
         # Print header line for this command response.
-        self._PrintOutput('#!# %s #!#' % response.command, title=True)
+        self._Print('#!# %s #!#' % response.command, msgtype='title')
 
       if str(self.filter_engine.header) not in result:
         # Copy initial command result, then append the rest as rows.
@@ -1119,24 +1124,24 @@ class TCLI(object):
     """Displays output in tabular form."""
 
     if self.display == 'csv':
-      self._PrintOutput(self._Pipe(str(result), pipe=pipe))
+      self._Print(self._Pipe(str(result), pipe=pipe))
 
     elif self.display == 'nvp':
       # 'Host' is added to the LABEL prefix.
       result.AddKeys(['Host'])
-      self._PrintOutput(self._Pipe(result.LabelValueTable(), pipe=pipe))
+      self._Print(self._Pipe(result.LabelValueTable(), pipe=pipe))
 
     elif self.display == 'tbl':
       (_, width) = terminal.TerminalSize()
       try:
-        self._PrintOutput(self._Pipe(result.FormattedTable(width), pipe=pipe))
+        self._Print(self._Pipe(result.FormattedTable(width), pipe=pipe))
       except TableError as error_message:
         width *= 2
         # Try again allowing text to wrap once.
         try:
-          self._PrintOutput(self._Pipe(result.FormattedTable(width), pipe=pipe))
+          self._Print(self._Pipe(result.FormattedTable(width), pipe=pipe))
         except TableError as error_message:
-          self._PrintWarning(str(error_message))
+          self._Print(str(error_message), msgtype='warning')
     else:
       # Problem with parsing of display command if we reach here.
       raise TcliCmdError('Unsupported display format: %s.' %
@@ -1159,7 +1164,7 @@ class TCLI(object):
     except IOError as error_message:
       logging.error('IOerror opening pipe.')
       if str(error_message):
-        self._PrintWarning(str(error_message))
+        self._Print(str(error_message), msgtype='warning')
       return
 
     try:
@@ -1188,13 +1193,13 @@ class TCLI(object):
     """Check if buffer is already being written to."""
 
     if buffername in (self.record, self.recordall, self.log, self.logall):
-      self._PrintWarning('Buffer: %s, already open for writing.' %
-                         repr(buffername))
+      self._Print('Buffer: %s, already open for writing.' %
+                  repr(buffername), msgtype='warning')
       return True
 
     if buffername == self.playback:
-      self._PrintWarning("Buffer: %s, already open by 'play' command." %
-                         self.playback)
+      self._Print("Buffer: %s, already open by 'play' command." %
+                  self.playback, msgtype='warning')
       return True
 
     return False
@@ -1221,9 +1226,9 @@ class TCLI(object):
 
     # Because the output is bracketed by PrintWarning calls, we print here
     # rather than returning the output.
-    self._PrintWarning('#! BUFFER %s !#' % args[0])
-    self._PrintSystem(buf)
-    self._PrintWarning('#! ENDBUFFER !#')
+    self._Print('#! BUFFER %s !#' % args[0], msgtype='warning')
+    self._Print(buf, msgtype='system')
+    self._Print('#! ENDBUFFER !#', msgtype='warning')
 
   def _CmdBufferList(self, command, args=None, append=False):
     """List all buffers."""
@@ -1474,7 +1479,7 @@ class TCLI(object):
     if len(args) > 1:
       filename = args[1]
     else:
-      self._PrintSystem('Enter filename to read from: ',)
+      self._Print('Enter filename to read from: ', msgtype='system')
       filename = sys.stdin.readline().strip()
     filename = os.path.expanduser(os.path.expandvars(filename))
 
@@ -1514,7 +1519,7 @@ class TCLI(object):
     if len(args) > 1:
       filename = args[1]
     else:
-      self._PrintSystem('Enter filename to write buffer to: ',)
+      self._Print('Enter filename to write buffer to: ', msgtype='system')
       filename = sys.stdin.readline().strip()
     filename = os.path.expanduser(os.path.expandvars(filename))
 
@@ -1552,54 +1557,22 @@ class TCLI(object):
   # End of command handles.                                                    #
   ##############################################################################
 
-  def _PrintWarning(self, msg):
-    """Prints warnings to stderr."""
+  def _Print(self, msg, msgtype='default'):
+    """Logs and prints user output."""
 
-    if not msg:
-      return
+    if not msg: return
 
+    # Capture output in logs.
     for buf in (self.logall,):
       self.buffers.Append(buf, msg)
 
-    if self.linewrap:
-      msg = terminal.LineWrap(msg)
-
+    if self.linewrap: msg = terminal.LineWrap(msg)
     if self.color:
-      print(terminal.AnsiText(msg, self.warning_color), file=sys.stderr)
-    else:
+      msg_color = f'{msgtype}_color'
+      if hasattr(self, msg_color) and type(getattr(self, msg_color) is str):
+        msg = terminal.AnsiText(msg, getattr(self, msg_color))
+    if msgtype == 'warning':
       print(msg, file=sys.stderr)
-
-  def _PrintOutput(self, msg, title=False):
-    """Prints output to stdout."""
-
-    if not msg:
-      return
-
-    for buf in (self.log, self.logall):
-      self.buffers.Append(buf, msg)
-
-    if self.linewrap:
-      msg = terminal.LineWrap(msg)
-
-    if title and self.color:
-      print(terminal.AnsiText(msg, self.title_color))
-    else:
-      print(msg)
-
-  def _PrintSystem(self, msg):
-    """Prints system messages to stdout."""
-
-    if not msg:
-      return
-
-    for buf in (self.logall,):
-      self.buffers.Append(buf, msg)
-
-    if self.linewrap:
-      msg = terminal.LineWrap(msg)
-
-    if self.color:
-      print(terminal.AnsiText(msg, self.system_color))
     else:
       print(msg)
 
