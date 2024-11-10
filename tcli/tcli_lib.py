@@ -976,6 +976,7 @@ class TCLI(object):
       and the second value is the local pipe with the '||' replaced with '|'.
     """
 
+    # Trivial case, there is no pipes.
     if '||' not in command:
       return (command, '')
 
@@ -1022,18 +1023,17 @@ class TCLI(object):
 
     # Do nothing with raw output other than tagging
     # Which device/command generated it.
-
-    self._Print('#!# %s:%s #!#' %
-                      (response.device_name, response.command),
-                      msgtype='title')
+    self._Print(
+      '#!# %s:%s #!#' % (response.device_name, response.command),
+      msgtype='title')
     self._Print(self._Pipe(response.data, pipe=pipe))
 
   def _FormatErrorResponse(self, response):
     """Formatted error derived from response."""
 
     self._Print('#!# %s:%s #!#\n%s' %
-                       (response.device_name, response.command, response.error),
-                       msgtype='warning')
+      (response.device_name, response.command, response.error),
+      msgtype='warning')
 
   def _FormatResponse(self, response_uid_list, pipe=''):
     """Display the results from a list of responses."""
@@ -1041,8 +1041,8 @@ class TCLI(object):
     # Filter required if display format is not 'raw'.
     if self.display != 'raw' and not self.filter:
       self._Print(
-          'No filter set, cannot display in %s format' % repr(self.display),
-          msgtype='warning')
+        'No filter set, cannot display in %s format' % repr(self.display),
+        msgtype='warning')
       return
 
     result = {}
@@ -1050,8 +1050,8 @@ class TCLI(object):
       response = self.cmd_response.GetResponse(response_uid)
       if not response:
         self._Print(
-            'Invalid or missing response: Some output could not be displayed.',
-            msgtype='warning')
+          'Invalid or missing response: Some output could not be displayed.',
+          msgtype='warning')
         continue
 
       # If response includes an error then print that.
@@ -1558,7 +1558,7 @@ class TCLI(object):
   ##############################################################################
 
   def _Print(self, msg, msgtype='default'):
-    """Logs and prints user output."""
+    """Prints (and logs) outputs."""
 
     if not msg: return
 
@@ -1566,11 +1566,14 @@ class TCLI(object):
     for buf in (self.logall,):
       self.buffers.Append(buf, msg)
 
+    # Format for width of display.
     if self.linewrap: msg = terminal.LineWrap(msg)
+    # Colourise depending on nature of message.
     if self.color:
       msg_color = f'{msgtype}_color'
       if hasattr(self, msg_color) and type(getattr(self, msg_color) is str):
         msg = terminal.AnsiText(msg, getattr(self, msg_color))
+    # Warnings go to stderr.
     if msgtype == 'warning':
       print(msg, file=sys.stderr)
     else:

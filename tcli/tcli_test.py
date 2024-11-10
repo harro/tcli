@@ -337,12 +337,12 @@ class UnitTestTCLI(unittest.TestCase):
   def testFormatRaw(self):
     """Test display of raw output."""
 
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatRaw(
           ResponseTuple(
               device_name='device1', command='time of day',
               data='a random\nmulti line\nstring.', error='', uid=''))
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call('#!# device1:time of day #!#', msgtype='title'),
           mock.call('a random\nmulti line\nstring.')
       ])
@@ -366,19 +366,19 @@ class UnitTestTCLI(unittest.TestCase):
     # Raw headers.
     header = '#!# %s:%s #!#' % ('device_1', 'c alpha')
 
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Single entry, raw output.
       self.tcli_obj._FormatResponse(['beef'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('hello world\n')
       ])
 
     header2 = '#!# %s:%s #!#' % ('device_2', 'c alpha')
     # Multiple ActionRequest objects, differing content.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'feed'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('hello world\n'),
           mock.call(header2, msgtype='title'),
@@ -386,9 +386,9 @@ class UnitTestTCLI(unittest.TestCase):
       ])
 
     # Multiple action request objects, same content.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'beef'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('hello world\n'),
           mock.call(header, msgtype='title'),
@@ -437,9 +437,9 @@ class UnitTestTCLI(unittest.TestCase):
 
     header = '#!# c alpha #!#'
     # Single entry, csv format.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColAa, ColAb\ndevice_1, hello, world\n')
       ])
@@ -454,9 +454,9 @@ class UnitTestTCLI(unittest.TestCase):
 
     header = '#!# c alpha #!#'
     # Multiple entries.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'feed'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColAa, ColAb\n'
                     'device_1, hello, world\n'
@@ -473,9 +473,9 @@ class UnitTestTCLI(unittest.TestCase):
 
     header = '#!# cat epsilon #!#'
     # Single entry - by Vendor.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n')
@@ -491,9 +491,9 @@ class UnitTestTCLI(unittest.TestCase):
 
     header = '#!# cat epsilon #!#'
     # Multiple entry - Vendor 'Asterix'.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed', 'deed'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n'
@@ -501,9 +501,9 @@ class UnitTestTCLI(unittest.TestCase):
       ])
 
     # Multiple entry - Vendor 'Obelix'.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['dead', 'dead'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColDa, ColDb\n'
                     'device_4, the, wall\n'
@@ -511,9 +511,9 @@ class UnitTestTCLI(unittest.TestCase):
       ])
 
     # Multiple entry - Mixed vendors.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed', 'dead', 'deed', 'dead'])
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n'
@@ -534,10 +534,10 @@ class UnitTestTCLI(unittest.TestCase):
 
     header = '#!# c alpha #!#'
     # Single entry, nvp format.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_output:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef'])
       # Column header, nvp label and data rows.
-      mock_output.assert_has_calls([
+      mock_print.assert_has_calls([
           mock.call(header, msgtype='title'),
           mock.call(
               nvp_label + '\n' +
@@ -752,13 +752,13 @@ class UnitTestTCLI(unittest.TestCase):
 
   def testNumberofArgs(self):
 
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('help badarg')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           'Invalid number of arguments, found "1".', msgtype='warning')
 
       self.tcli_obj.TildeCmd('buffer boo badarg')
-      mock_warning.assert_called_with(
+      mock_print.assert_called_with(
           'Invalid number of arguments, found "2".', msgtype='warning')
 
   def testTildeExit(self):
@@ -780,9 +780,9 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TildeCmd('color')
     self.assertTrue(self.tcli_obj.color)
     # Invalid bool rejected.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('color bogus')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           "Error: Argument must be 'on' or 'off'.", msgtype='warning')
     # Valid color_scheme accepted
     self.tcli_obj.TildeCmd('color_scheme light')
@@ -791,9 +791,9 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual('dark', self.tcli_obj.color_scheme)
 
     # Invalid color scheme rejected
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('color_scheme bogus')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           'Error: Unknown color scheme: bogus', msgtype='warning')
 
   def testSafeMode(self):
@@ -879,10 +879,10 @@ class UnitTestTCLI(unittest.TestCase):
   def testAlphaNumBuffer(self):
 
     # Use 'buffer' as test command as it accepts and argument
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('buffer a.b')
       # Argument to buffer must be an alphanum.
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           'Arguments with alphanumeric characters only.', msgtype='warning')
 
   def testTildeFilter(self):
@@ -903,9 +903,9 @@ class UnitTestTCLI(unittest.TestCase):
         self.tcli_obj.filter_engine.table)
 
     # Bad filter value.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('filter not_a_valid_filter')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           "Invalid filter 'not_a_valid_filter'.", msgtype='warning')
 
   def testTildeBufferAsignment(self):
@@ -1007,7 +1007,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.inventory.device_list = []
 
     # Record commands but not escape commands.
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('record hello')
       self.tcli_obj.ParseCommands('A test')
       self.tcli_obj.ParseCommands('A two\nline test')
@@ -1017,7 +1017,7 @@ class UnitTestTCLI(unittest.TestCase):
       self.assertEqual(
           'A test\nA two\nline test',
           self.tcli_obj.buffers.GetBuffer('hello'))
-      mock_warning.assert_any_call("Invalid escape command 'an'.",
+      mock_print.assert_any_call("Invalid escape command 'an'.",
                                    msgtype='warning')
 
     # Record and append.
@@ -1101,7 +1101,7 @@ class UnitTestTCLI(unittest.TestCase):
     # A null device list prevents sending of commands to backend.
     self.tcli_obj.inventory.device_list = []
 
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Record commands but not escape commands.
       self.tcli_obj.TildeCmd('log hello')
       self.tcli_obj.ParseCommands('A test')
@@ -1112,7 +1112,7 @@ class UnitTestTCLI(unittest.TestCase):
       self.assertEqual(
           'A test\nA two\nline test',
           self.tcli_obj.buffers.GetBuffer('hello'))
-      mock_warning.assert_called_once_with("Invalid escape command 'an'.",
+      mock_print.assert_called_once_with("Invalid escape command 'an'.",
                                            msgtype='warning')
 
     self.tcli_obj.record = None
@@ -1147,10 +1147,10 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual(10, self.tcli_obj.timeout)
 
     # Rejects invalid data
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('timeout a')
       self.assertEqual(10, self.tcli_obj.timeout)
-      mock_warning.assert_called_once_with("Invalid timeout value 'a'.",
+      mock_print.assert_called_once_with("Invalid timeout value 'a'.",
                                            msgtype='warning')
 
     # Accepts only positive whole integers
@@ -1214,34 +1214,34 @@ class UnitTestTCLI(unittest.TestCase):
 
   def testTildeBufferRecursivePlay1(self):
     """Cannot make recursive or infinite calls to play out buffer."""
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.buffers.Append('boo', '%splay boo' % tcli.SLASH)
       self.tcli_obj.TildeCmd('play boo')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           'Recursive call of "play" rejected.', msgtype='warning')
 
   def testTildeBufferRecursivePlay2(self):
     """Cannot assign buffer while playing out the content."""
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.buffers.Append('boo', '%srecordall boo\n%scolor' % (
           tcli.SLASH, tcli.SLASH))
       self.tcli_obj.TildeCmd('play boo')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           "Buffer: boo, already open by 'play' command.", msgtype='warning')
       self.assertEqual(self.tcli_obj.recordall, '')
 
   def testTildeBufferRecursivePlay3(self):
     """Cannot play from a buffer that is being recorded to."""
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.recordall = 'boo'
       self.tcli_obj.buffers.Append('boo', '%scolor' % tcli.SLASH)
       self.tcli_obj.TildeCmd('play boo')
-      mock_warning.assert_called_once_with(
+      mock_print.assert_called_once_with(
           "Buffer: 'boo', already open for writing.", msgtype='warning')
 
   def testTildeBufferRecursivePlay4(self):
     """Tests we are able log to a different buffer to what we play out from."""
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warning:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.color = True
       self.tcli_obj.recordall = 'hoo'
       self.tcli_obj.buffers.Append('boo', '%scolor' % tcli.SLASH)
@@ -1250,7 +1250,7 @@ class UnitTestTCLI(unittest.TestCase):
                        self.tcli_obj.buffers.GetBuffer('hoo'))
       # Color value was toggled.
       self.tcli_obj.color = False
-      mock_warning.assert_has_calls([])
+      mock_print.assert_has_calls([])
 
   def testTildeBuffer(self):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
