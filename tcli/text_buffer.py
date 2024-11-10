@@ -30,7 +30,7 @@ class TextBuffer(object):
   def __init__(self):
     self._buffers = collections.defaultdict(str)
 
-  def Append(self, text_buffer:str, line:str) ->None:
+  def Append(self, text_buffer:str, line:str) -> None:
     """Append row of text to buffer."""
     # Accept and silently discard empty buffer name or data.
     if not text_buffer or not line: return
@@ -40,17 +40,19 @@ class TextBuffer(object):
     else:
       self._buffers[text_buffer] = line
 
-  def Clear(self, text_buffer:str) ->bool:
+  def Clear(self, text_buffer:str) -> bool:
     """Clears content of named buffer."""
     if text_buffer in self._buffers:
       del self._buffers[text_buffer]
       return True
     return False
 
-  def GetBuffer(self, text_buffer:str) ->str|None:
-    """Returns named buffer if it exists, returns 'None' otherwise."""
-    return self._buffers.get(text_buffer)
+  def GetBuffer(self, text_buffer:str) -> str:
+    """Returns content of named buffer if it exists."""
+    content = self._buffers.get(text_buffer)
+    if content is None: raise AttributeError(f"No Buffer: '{text_buffer}'.")
+    return content
 
-  def ListBuffers(self) ->str:
+  def ListBuffers(self) -> str:
     """Returns list of buffers that exist (created and not cleared)."""
     return ' '.join(sorted(self._buffers))

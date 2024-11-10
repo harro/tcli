@@ -1000,9 +1000,6 @@ class UnitTestTCLI(unittest.TestCase):
   def testTildeBufferRecord(self):
     """Test writing to buffers."""
 
-    # A null device list prevents sending of commands to backend.
-    self.tcli_obj.inventory.device_list = []
-
     # Record commands but not escape commands.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj.TildeCmd('record hello')
@@ -1030,7 +1027,8 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TildeCmd('logstop hello')
     self.tcli_obj.TildeCmd('record hello')
     self.assertEqual('hello', self.tcli_obj.record)
-    self.assertIsNone(self.tcli_obj.buffers.GetBuffer('hello'))
+    # Haven't written yet, so there is no buffer.
+    self.assertRaises(AttributeError, self.tcli_obj.buffers.GetBuffer, 'hello')
 
     # Record to the newly cleared buffer.
     self.tcli_obj.ParseCommands('A test')
@@ -1038,10 +1036,8 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TildeCmd('record{} hello'.format(APPEND))
     self.assertEqual('A test', self.tcli_obj.buffers.GetBuffer('hello'))
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = self.tcli_obj.recordall = ''
+    self.tcli_obj.log = self.tcli_obj.logall = ''
 
     # Record command and escape commands.
     self.tcli_obj.TildeCmd('recordall hello')
@@ -1054,10 +1050,8 @@ class UnitTestTCLI(unittest.TestCase):
         'A test\nA two\nline test\n%sbuffer hello' % tcli.SLASH,
         self.tcli_obj.buffers.GetBuffer('hello'))
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = self.tcli_obj.recordall = ''
+    self.tcli_obj.log = self.tcli_obj.logall = ''
 
     # Record command and escape commands with logstop.
     self.tcli_obj.TildeCmd('recordall hello')
@@ -1074,23 +1068,21 @@ class UnitTestTCLI(unittest.TestCase):
         self.tcli_obj.buffers.GetBuffer('world'))
     self.assertEqual('world', self.tcli_obj.logall)
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = self.tcli_obj.recordall = ''
+    self.tcli_obj.log = self.tcli_obj.logall = ''
 
     # Record to buffer already in use
     self.tcli_obj.logall = 'hello'
     self.tcli_obj.TildeCmd('record hello')
-    self.assertIsNone(self.tcli_obj.record)
+    self.assertEqual(self.tcli_obj.record, '')
     self.tcli_obj.TildeCmd('recordall hello')
-    self.assertIsNone(self.tcli_obj.recordall)
+    self.assertEqual(self.tcli_obj.recordall, '')
     self.tcli_obj.TildeCmd('log hello')
-    self.assertIsNone(self.tcli_obj.log)
-    self.tcli_obj.logall = None
+    self.assertEqual(self.tcli_obj.log, '')
+    self.tcli_obj.logall = ''
     self.tcli_obj.record = 'hello'
     self.tcli_obj.TildeCmd('logall hello')
-    self.assertIsNone(self.tcli_obj.logall)
+    self.assertEqual(self.tcli_obj.logall, '')
 
   def testTildeBufferLog(self):
     """Tests logging of commands to a buffer."""
@@ -1197,10 +1189,9 @@ class UnitTestTCLI(unittest.TestCase):
       self.tcli_obj.TildeCmd('play boo')
       mock_parse.assert_called_once_with('hello\nworld')
 
-      # Non existing buffer triggers command with no imput.
+      # Non existing buffer so ParseCommand is still only called once..
       self.tcli_obj.TildeCmd('play non_exist')
-      mock_parse.assert_has_calls([mock.call('hello\nworld'),
-                                   mock.call(None)])
+      mock_parse.assert_called_once_with('hello\nworld')
 
   def testTildeBufferRecursivePlay0(self):
     """Sanity check that buffer plays out."""
@@ -1271,7 +1262,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     self.tcli_obj.buffers.Append('boo', 'hello\nworld')
     self.tcli_obj.TildeCmd('clear boo')
-    self.assertIsNone(self.tcli_obj.buffers.GetBuffer('boo'))
+    self.assertRaises(AttributeError, self.tcli_obj.buffers.GetBuffer, 'boo')
 
     # Clearing a nonexistant buffer fails silently.
     self.tcli_obj.TildeCmd('clear non_exist')

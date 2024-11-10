@@ -397,7 +397,7 @@ class TCLI(object):
     self._Print(MOTD, msgtype='system')
 
   def _SetFiltersFromDefaults(
-      self, inv:inventory.Inventory) -> None|AttributeError:
+      self, inv:inventory.Inventory) -> None:
     """Trawls filters and sets the matching commands via the cli_parser."""
 
     # Commands that may be specified in flags.
@@ -432,7 +432,7 @@ class TCLI(object):
       terminal.AnsiText(len(self.device_list), self.warning_color),
       terminal.AnsiText(safe, self.title_color))
 
-  def _InitInventory(self) ->None|inventory.AuthError:
+  def _InitInventory(self) -> None:
     """Inits inventory and triggers async load of device data."""
 
     try:
@@ -443,7 +443,7 @@ class TCLI(object):
       self._Print(str(error_message), msgtype='warning')
       raise inventory.AuthError()
 
-  def _ParseRCFile(self) ->None|EOFError:
+  def _ParseRCFile(self) -> None:
     """Reads and execs the rc file.
 
       If present, it will be read into buffer 'startup', then
@@ -624,7 +624,7 @@ class TCLI(object):
       self.cli_parser.ExecWithDefault(command_name)
 
   # pylint: disable=unused-argument
-  def Completer(self, word:str, state:int) ->str|None:
+  def Completer(self, word:str, state:int) -> str|None:
     """Command line completion used by readline library."""
 
     # Silently discard leading whitespace on cli.
@@ -633,7 +633,7 @@ class TCLI(object):
       return self._TildeCompleter(full_line, state)
     return self._CmdCompleter(full_line, state)
 
-  def _TildeCompleter(self, full_line:str, state:int) ->str|None:
+  def _TildeCompleter(self, full_line:str, state:int) -> str|None:
     """Command line completion for escape commands."""
 
     # Pass subsequent arguments of a command to its completer.
@@ -665,7 +665,7 @@ class TCLI(object):
       return SLASH + completer_list[state]
     return None
 
-  def _CmdCompleter(self, full_line:str, state:int) ->str|None:
+  def _CmdCompleter(self, full_line:str, state:int) -> str|None:
     """Commandline completion used by readline library."""
 
     # First invocation, so build candidate list and cache for re-use.
@@ -726,7 +726,7 @@ class TCLI(object):
     except IndexError:
       return None
 
-  def ParseCommands(self, commands:str) ->None:
+  def ParseCommands(self, commands:str) -> None:
     """Parses commands and executes them.
 
     Splits commands on line boundary and forwards to either the:
@@ -737,7 +737,7 @@ class TCLI(object):
       commands: String of newline separated commands.
     """
 
-    def _FlushCommands(command_list:list[str]) ->None:
+    def _FlushCommands(command_list:list[str]) -> None:
       """Submit commands and clear list."""
 
       if command_list:
@@ -778,7 +778,7 @@ class TCLI(object):
 
     _FlushCommands(command_list)
 
-  def Callback(self, response:inventory.CmdResponse) ->None:
+  def Callback(self, response:inventory.CmdResponse) -> None:
     """Async callback for device command."""
 
     with self._lock:
@@ -863,7 +863,7 @@ class TCLI(object):
                   msgtype='warning')
     logging.debug('CmdRequests: All callbacks completed.')
 
-  def TildeCmd(self, line:str) ->None|EOFError:
+  def TildeCmd(self, line:str) -> None:
     """Tilde escape tcli configuration command.
 
     Args:
@@ -899,7 +899,7 @@ class TCLI(object):
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
 
-  def _ExtractInlineCommands(self, command:str) ->tuple[str,object]:
+  def _ExtractInlineCommands(self, command:str) -> tuple[str,object]:
     # pylint: disable=missing-docstring
     """Separate out linewise commmand overrides from command input.
 
@@ -960,7 +960,7 @@ class TCLI(object):
 
     return (command_left, inline_tcli)
 
-  def _ExtractPipe(self, command:str) ->tuple[str,str]:
+  def _ExtractPipe(self, command:str) -> tuple[str,str]:
     """Separate out local pipe suffix from command input.
 
     Converts something like:
@@ -1018,7 +1018,7 @@ class TCLI(object):
 
     return (cmd_str.rstrip(), dbl_pipe_str.strip())
 
-  def _FormatRaw(self, response:inventory.CmdResponse, pipe:str='') ->None:
+  def _FormatRaw(self, response:inventory.CmdResponse, pipe:str='') -> None:
     """Display response in raw format."""
 
     # Do nothing with raw output other than tagging
@@ -1028,14 +1028,14 @@ class TCLI(object):
       msgtype='title')
     self._Print(self._Pipe(response.data, pipe=pipe))
 
-  def _FormatErrorResponse(self, response:inventory.CmdResponse) ->None:
+  def _FormatErrorResponse(self, response:inventory.CmdResponse) -> None:
     """Formatted error derived from response."""
 
     self._Print('#!# %s:%s #!#\n%s' %
       (response.device_name, response.command, response.error),
       msgtype='warning')
 
-  def _FormatResponse(self, response_uid_list:list[int], pipe:str='') ->None:
+  def _FormatResponse(self, response_uid_list:list[int], pipe:str='') -> None:
     """Display the results from a list of responses."""
 
     # Filter required if display format is not 'raw'.
@@ -1120,7 +1120,7 @@ class TCLI(object):
         result[command_tbl].sort()
       self._DisplayTable(result[command_tbl], pipe=pipe)
 
-  def _DisplayTable(self, result:clitable.CliTable, pipe:str='') ->None:
+  def _DisplayTable(self, result:clitable.CliTable, pipe:str='') -> None:
     """Displays output in tabular form."""
 
     if self.display == 'csv':
@@ -1147,7 +1147,7 @@ class TCLI(object):
       raise TcliCmdError('Unsupported display format: %s.' %
                          repr(self.display))
 
-  def _Pipe(self, output:str, pipe:str='') ->str|None:
+  def _Pipe(self, output:str, pipe:str='') -> str|None:
     """Creates pipe for filtering command output."""
 
     if not pipe:
@@ -1174,7 +1174,7 @@ class TCLI(object):
       logging.error('IOerror writing/reading from pipe.')
       return
 
-  def Prompt(self) ->None:
+  def Prompt(self) -> None:
     """Present prompt for further input."""
 
     # Clear response dictionary to ignore outstanding requests.
@@ -1186,7 +1186,7 @@ class TCLI(object):
     # Stripped ASCII escape from here, as they are not interpreted in PY3.
     self.ParseCommands(input(PROMPT_STR))
 
-  def _BufferInUse(self, buffername:str) ->bool:
+  def _BufferInUse(self, buffername:str) -> bool:
     """Check if buffer is already being written to."""
 
     if buffername in (self.record, self.recordall, self.log, self.logall):
@@ -1212,12 +1212,15 @@ class TCLI(object):
   #
   # pylint: disable=unused-argument
 
-  def _CmdBuffer(self, command:str, args:list[str], append:bool=False) ->None:
+  def _CmdBuffer(self, command:str, args:list[str], append:bool=False) -> None:
     """"Displays buffer contents."""
 
     # Copy buffer to local var so we capture content before adding more here.
-    buf = self.buffers.GetBuffer(args[0])
-    if buf is None: raise ValueError(f'Invalid buffer name "{args[0]}".')
+    try:
+      buf = self.buffers.GetBuffer(args[0])
+    except(AttributeError): 
+      self._Print(f'Invalid buffer name "{args[0]}".', msgtype='warning')
+      return
 
     # Because the output is bracketed by multiple _Print calls, we print here
     # rather than returning the output.
@@ -1226,16 +1229,16 @@ class TCLI(object):
     self._Print('#! ENDBUFFER !#', msgtype='warning')
 
   def _CmdBufferList(
-    self, command:str, args:list[str], append:bool=False) ->str:
+    self, command:str, args:list[str], append:bool=False) -> str:
     """List all buffers."""
     return self.buffers.ListBuffers()
 
-  def _CmdClear(self, command:str, args:list[str], append:bool=False) ->None:
+  def _CmdClear(self, command:str, args:list[str], append:bool=False) -> None:
     """Clears content of the buffer."""
     self.buffers.Clear(args[0])
 
   def _CmdColorScheme(
-    self, command:str, args:list[str], append:bool=False) ->str|None|ValueError:
+    self, command:str, args:list[str], append:bool=False) -> str|None:
     """Sets ANSI color escape values."""
 
     if not args:
@@ -1264,13 +1267,12 @@ class TCLI(object):
       self.warning_color = GROSS_WARNING_COLOR
       self.title_color = GROSS_TITLE_COLOR
 
-  def _CmdCommand(self, command:str, args:list[str], append:bool) ->None:
+  def _CmdCommand(self, command:str, args:list[str], append:bool) -> None:
     """Submit command to devices."""
     self.CmdRequests(self.device_list, [args[0]], True)
 
   def _CmdDefaults(
-      self, command:str, args:list[str], append:bool=False
-      ) -> str|None|ValueError:
+      self, command:str, args:list[str], append:bool=False) -> str|None:
     """Reset commands to the 'at start' value."""
 
     # Display rather than change.
@@ -1292,7 +1294,7 @@ class TCLI(object):
       raise ValueError("Cannot set '{default}' to defaults.")
 
   def _CmdDisplay(
-    self, command:str, args:list[str], append:bool) ->str|None|ValueError:
+    self, command:str, args:list[str], append:bool) -> str|None:
     """Set the layout format."""
 
     if not args:
@@ -1306,7 +1308,7 @@ class TCLI(object):
           f"Unknown display '{repr(display_format)}'."
           f" Available displays are '{DISPLAY_FORMATS}'")
 
-  def _CmdEnv(self, command:str, args:list[str], append:bool) ->str:
+  def _CmdEnv(self, command:str, args:list[str], append:bool) -> str:
     """Display various environment variables."""
 
     return '\n'.join([
@@ -1320,7 +1322,7 @@ class TCLI(object):
       ])
 
   def _CmdExecShell(
-    self, command:str, args:list[str], append:bool) ->str|ValueError:
+    self, command:str, args:list[str], append:bool) -> str:
     """Executes a shell command."""
 
     try:
@@ -1331,7 +1333,7 @@ class TCLI(object):
       raise ValueError(error_message)
     return output
 
-  def _CmdEditor(self, command:str, args:list[str], append:bool) ->None:
+  def _CmdEditor(self, command:str, args:list[str], append:bool) -> None:
     """Edits the named buffer content."""
 
     buf = args[0]
@@ -1352,15 +1354,15 @@ class TCLI(object):
     buf_file.close()
 
   def _CmdExit(
-    self, command:str, args:list[str]=None, append:bool=False) ->EOFError:
+    self, command:str, args:list[str]=None, append:bool=False) -> None:
     """Exit TCLI."""
     raise EOFError()
 
-  def _CmdExpandTargets(self, command:str, args:list[str], append:bool) ->str:
+  def _CmdExpandTargets(self, command:str, args:list[str], append:bool) -> str:
     return ','.join(self.device_list)
 
   def _CmdFilter(
-    self, command:str, args:list[str], append:bool) ->str|None|ValueError:
+    self, command:str, args:list[str], append:bool) -> str|None:
     """Sets the clitable filter."""
 
     if not args:
@@ -1387,7 +1389,7 @@ class TCLI(object):
         f'{cmd}{append_str}{arg}{self.cli_parser.GetCommand(cmd).help_str}\n\n')
     return ''.join(result)
 
-  def _CmdInventory(self, command:str, args:list[str], append:bool) ->str:
+  def _CmdInventory(self, command:str, args:list[str], append:bool) -> str:
     """Displays devices in target list."""
 
     dlist = []
@@ -1406,7 +1408,7 @@ class TCLI(object):
       dlist.append(', '.join(attr_list))
     return '\n'.join(dlist)
 
-  def _CmdLogging(self, command:str, args:list[str], append:bool) ->str|None:
+  def _CmdLogging(self, command:str, args:list[str], append:bool) -> str|None:
     """Activates one of the various logging functions."""
 
     # If no arg then display what buffer is currently active.
@@ -1426,7 +1428,7 @@ class TCLI(object):
     setattr(self, command, buf)
 
   def _CmdLogStop(
-    self, command:str, args:list[str], append:bool=False)->None|ValueError:
+    self, command:str, args:list[str], append:bool=False) -> None:
     """Stop logging to a buffer."""
 
     for attr in ('record', 'recordall', 'log', 'logall'):
@@ -1437,7 +1439,7 @@ class TCLI(object):
     raise ValueError('Buffer not in use for logging or recording.')
 
   def _CmdMode(
-    self, command:str, args:list[str], append:bool) ->str|None|ValueError:
+    self, command:str, args:list[str], append:bool) -> str|None:
     """Target CLI Mode to send to commands for."""
 
     if not args: return f'Mode: {self.mode}'
@@ -1448,8 +1450,7 @@ class TCLI(object):
         f"Unknown mode {repr(mode)}. Available modes are '{MODE_FORMATS}'")
     self.mode = mode
 
-  def _CmdPlay(
-    self, command:str, args:list[str], append:bool) ->None|ValueError:
+  def _CmdPlay(self, command:str, args:list[str], append:bool) -> None:
     """Plays out buffer contents to TCLI."""
 
     if self.playback is not None:
@@ -1460,10 +1461,14 @@ class TCLI(object):
     if not self._BufferInUse(buf):
       # Mark what buffer we are playing out from.
       self.playback = buf
-      self.ParseCommands(self.buffers.GetBuffer(buf))
+      try:
+        content = self.buffers.GetBuffer(buf)
+        self.ParseCommands(content)
+      except(AttributeError):
+        self._Print(f"Nonexistent buffer: '{buf}'.", msgtype='warning')
       self.playback = None
 
-  def _CmdRead(self, command:str, args:list[str], append:bool) ->str:
+  def _CmdRead(self, command:str, args:list[str], append:bool) -> str:
     """"Write buffer content to file."""
 
     buf = args[0]
@@ -1486,8 +1491,7 @@ class TCLI(object):
     buf_file.close()
     return f"{self.buffers.GetBuffer(buf).count('\n')} lines read."
 
-  def _CmdTimeout(
-    self, command:str, args:list[str], append:bool) ->str|None|ValueError:
+  def _CmdTimeout(self, command:str, args:list[str], append:bool) -> str|None:
     """Sets or display the timeout setting."""
 
     if not args: return f'Timeout: {self.timeout}'
@@ -1501,34 +1505,32 @@ class TCLI(object):
     except ValueError:
       raise ValueError('Invalid timeout value %s.' % repr(args[0]))
 
+  #TODO(harro): Add flag to disable being able to write to file.
   def _CmdWrite(
-    self, command:str, args:list[str], append:bool) ->str|ValueError:
+    self, command:str, args:list[str], append:bool) -> str:
     """Writes out buffer content to file."""
 
-    buf = args[0]
-    if not self.buffers.GetBuffer(buf):
-      raise ValueError('Buffer empty.')
+    content = self.buffers.GetBuffer(args[0])
+    if not content: raise ValueError('Buffer empty.')
 
     if len(args) > 1:
       filename = args[1]
     else:
       self._Print('Enter filename to write buffer to: ', msgtype='system')
       filename = sys.stdin.readline().strip()
+
     filename = os.path.expanduser(os.path.expandvars(filename))
 
     try:
-      if append:
-        buf_file = open(filename, 'a')
-      else:
-        buf_file = open(filename, 'w')
-      buf_file.writelines(self.buffers.GetBuffer(buf))
+      buf_file = open(filename, 'a') if append else open(filename, 'w')
+      buf_file.writelines(content)
       buf_file.close()
     except IOError as error_message:
       raise ValueError(str(error_message))
 
-    return f"{self.buffers.GetBuffer(buf).count('\n')} lines written."
+    return f"{content.count('\n')} lines written."
 
-  def _CmdToggleValue(self, command:str, args:list[str], append:bool) ->None:
+  def _CmdToggleValue(self, command:str, args:list[str], append:bool) -> None:
     """Commands that can 'toggle' their value."""
 
     if not args:
