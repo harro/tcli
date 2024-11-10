@@ -22,6 +22,7 @@ import os
 from absl import flags
 import unittest
 from unittest import mock
+from tcli import inventory_base as inventory
 from tcli import tcli_lib as tcli
 from tcli.tcli_textfsm import clitable
 
@@ -85,10 +86,6 @@ class FakeEvent(object):
 
   def clear(self):  # pylint: disable=g-bad-name
     pass
-
-
-ResponseTuple = collections.namedtuple(
-    'ResponseTuple', ['device_name', 'error', 'uid', 'command', 'data'])
 
 
 class FakeCmdResponse(tcli.command_response.CmdResponse):
@@ -339,7 +336,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatRaw(
-          ResponseTuple(
+          inventory.CmdResponse(
               device_name='device1', command='time of day',
               data='a random\nmulti line\nstring.', error='', uid=''))
       mock_print.assert_has_calls([
@@ -350,10 +347,10 @@ class UnitTestTCLI(unittest.TestCase):
   def testFormatRawResponse(self):
     """Tests display of raw command results."""
 
-    self.tcli_obj.cmd_response._results['beef'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['beef'] = inventory.CmdResponse(
         uid='beef', device_name='device_1', data='hello world\n',
         command='c alpha', error='')
-    self.tcli_obj.cmd_response._results['feed'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['feed'] = inventory.CmdResponse(
         uid='feed', device_name='device_2', data='quick fox\n',
         command='c alpha', error='')
 
@@ -414,16 +411,16 @@ class UnitTestTCLI(unittest.TestCase):
         'device_4': dev_attr(vendor='obelix')
     }
 
-    self.tcli_obj.cmd_response._results['beef'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['beef'] = inventory.CmdResponse(
         uid='beef', device_name='device_1', error='',
         command='c alpha', data='hello world\n')
-    self.tcli_obj.cmd_response._results['feed'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['feed'] = inventory.CmdResponse(
         uid='feed', device_name='device_2', error='',
         command='c alpha', data='quick fox\n')
-    self.tcli_obj.cmd_response._results['deed'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['deed'] = inventory.CmdResponse(
         uid='deed', device_name='device_3', error='',
         command='cat epsilon', data='jumped over\n')
-    self.tcli_obj.cmd_response._results['dead'] = ResponseTuple(
+    self.tcli_obj.cmd_response._results['dead'] = inventory.CmdResponse(
         uid='dead', device_name='device_4', error='',
         command='cat epsilon', data='the wall\n')
 

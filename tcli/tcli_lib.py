@@ -326,7 +326,7 @@ class TCLI(object):
     self._completer_list = []
     self.interactive = False
     self.filter_engine = None
-    self.pipe = None
+    self.pipe = ''
     self.playback = None
     self.prompt = None
     self.safemode = False
@@ -394,7 +394,7 @@ class TCLI(object):
 
     return tcli_obj
 
-  def Motd(self):
+  def Motd(self) ->None:
     """Display message of the day."""
     self._Print(MOTD, msgtype='system')
 
@@ -434,7 +434,7 @@ class TCLI(object):
       terminal.AnsiText(len(self.device_list), self.warning_color),
       terminal.AnsiText(safe, self.title_color))
 
-  def _InitInventory(self):
+  def _InitInventory(self) ->None|inventory.AuthError:
     """Inits inventory and triggers async load of device data."""
 
     try:
@@ -445,7 +445,7 @@ class TCLI(object):
       self._Print(str(error_message), msgtype='warning')
       raise inventory.AuthError()
 
-  def _ParseRCFile(self):
+  def _ParseRCFile(self) ->None|EOFError:
     """Reads and execs the rc file.
 
       If present, it will be read into buffer 'startup', then
@@ -472,7 +472,7 @@ class TCLI(object):
               msgtype='warning')
           raise EOFError()
 
-  def RegisterCommands(self, cli_parser):
+  def RegisterCommands(self, cli_parser:command_parser.CommandParser) ->None:
     """Register commands supported by TCLI core functions."""
 
     cli_parser.RegisterCommand(
@@ -571,7 +571,7 @@ class TCLI(object):
     cli_parser.RegisterCommand(
         'vi', TILDE_COMMAND_HELP['vi'], min_args=1, handler=self._CmdEditor)
 
-  def StartUp(self, commands, interactive):
+  def StartUp(self, commands, interactive) ->None:
     """Runs rc file commands and initial startup tasks.
 
       The RC file may contain any valid TCLI commands including commands to send
@@ -612,7 +612,7 @@ class TCLI(object):
     if commands:
       self.ParseCommands(commands)
 
-  def SetDefaults(self):
+  def SetDefaults(self) ->None:
     """Parses command line flags ad sets default attributes.
 
       Commands here affect data representation/presentation but are otherwise
@@ -626,7 +626,7 @@ class TCLI(object):
       self.cli_parser.ExecWithDefault(command_name)
 
   # pylint: disable=unused-argument
-  def Completer(self, word, state):
+  def Completer(self, word:str, state:int) ->str|None:
     """Command line completion used by readline library."""
 
     # Silently discard leading whitespace on cli.
@@ -635,7 +635,7 @@ class TCLI(object):
       return self._TildeCompleter(full_line, state)
     return self._CmdCompleter(full_line, state)
 
-  def _TildeCompleter(self, full_line, state):
+  def _TildeCompleter(self, full_line:str, state:int) ->str|None:
     """Command line completion for escape commands."""
 
     # Pass subsequent arguments of a command to its completer.
@@ -667,7 +667,7 @@ class TCLI(object):
       return SLASH + completer_list[state]
     return None
 
-  def _CmdCompleter(self, full_line, state):
+  def _CmdCompleter(self, full_line:str, state:int) ->str|None:
     """Commandline completion used by readline library."""
 
     # First invocation, so build candidate list and cache for re-use.
@@ -728,7 +728,7 @@ class TCLI(object):
     except IndexError:
       return None
 
-  def ParseCommands(self, commands):
+  def ParseCommands(self, commands:str) ->None:
     """Parses commands and executes them.
 
     Splits commands on line boundary and forwards to either the:
@@ -739,7 +739,7 @@ class TCLI(object):
       commands: String of newline separated commands.
     """
 
-    def _FlushCommands(command_list):
+    def _FlushCommands(command_list:list[str]) ->None:
       """Submit commands and clear list."""
 
       if command_list:
@@ -780,7 +780,7 @@ class TCLI(object):
 
     _FlushCommands(command_list)
 
-  def Callback(self, response):
+  def Callback(self, response:inventory.CmdResponse) ->None:
     """Async callback for device command."""
 
     with self._lock:
@@ -794,7 +794,9 @@ class TCLI(object):
         self._FormatResponse(row[0], row[1])
         row = self.cmd_response.GetRow()
 
-  def CmdRequests(self, device_list, command_list, explicit_cmd=False):
+  def CmdRequests(
+    self, device_list:list[str], command_list:list[str], explicit_cmd:bool=False
+    ) ->None:
     """Submits command list to devices and receives responses.
 
     Args:
@@ -863,7 +865,7 @@ class TCLI(object):
                   msgtype='warning')
     logging.debug('CmdRequests: All callbacks completed.')
 
-  def TildeCmd(self, line):
+  def TildeCmd(self, line:str) ->None|EOFError:
     """Tilde escape tcli configuration command.
 
     Args:
@@ -899,7 +901,7 @@ class TCLI(object):
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
 
-  def _ExtractInlineCommands(self, command):
+  def _ExtractInlineCommands(self, command:str) ->tuple[str,object]:
     # pylint: disable=missing-docstring
     """Separate out linewise commmand overrides from command input.
 
@@ -960,7 +962,7 @@ class TCLI(object):
 
     return (command_left, inline_tcli)
 
-  def _ExtractPipe(self, command):
+  def _ExtractPipe(self, command:str) ->tuple[str,str]:
     """Separate out local pipe suffix from command input.
 
     Converts something like:
@@ -1018,7 +1020,7 @@ class TCLI(object):
 
     return (cmd_str.rstrip(), dbl_pipe_str.strip())
 
-  def _FormatRaw(self, response, pipe=''):
+  def _FormatRaw(self, response:inventory.CmdResponse, pipe:str='') ->None:
     """Display response in raw format."""
 
     # Do nothing with raw output other than tagging
@@ -1028,14 +1030,14 @@ class TCLI(object):
       msgtype='title')
     self._Print(self._Pipe(response.data, pipe=pipe))
 
-  def _FormatErrorResponse(self, response):
+  def _FormatErrorResponse(self, response:inventory.CmdResponse) ->None:
     """Formatted error derived from response."""
 
     self._Print('#!# %s:%s #!#\n%s' %
       (response.device_name, response.command, response.error),
       msgtype='warning')
 
-  def _FormatResponse(self, response_uid_list, pipe=''):
+  def _FormatResponse(self, response_uid_list:list[int], pipe:str='') ->None:
     """Display the results from a list of responses."""
 
     # Filter required if display format is not 'raw'.
@@ -1120,7 +1122,7 @@ class TCLI(object):
         result[command_tbl].sort()
       self._DisplayTable(result[command_tbl], pipe=pipe)
 
-  def _DisplayTable(self, result, pipe=''):
+  def _DisplayTable(self, result:clitable.CliTable, pipe:str='') ->None:
     """Displays output in tabular form."""
 
     if self.display == 'csv':
@@ -1147,7 +1149,7 @@ class TCLI(object):
       raise TcliCmdError('Unsupported display format: %s.' %
                          repr(self.display))
 
-  def _Pipe(self, output, pipe=''):
+  def _Pipe(self, output:str, pipe:str='') ->str|None:
     """Creates pipe for filtering command output."""
 
     if not pipe:
@@ -1177,7 +1179,7 @@ class TCLI(object):
       logging.error('IOerror writing/reading from pipe.')
       return
 
-  def Prompt(self):
+  def Prompt(self) ->None:
     """Present prompt for further input."""
 
     # Clear response dictionary to ignore outstanding requests.
@@ -1189,7 +1191,7 @@ class TCLI(object):
     # Stripped ASCII escape from here, as they are not interpreted in PY3.
     self.ParseCommands(input(PROMPT_STR))
 
-  def _BufferInUse(self, buffername):
+  def _BufferInUse(self, buffername:str) ->bool:
     """Check if buffer is already being written to."""
 
     if buffername in (self.record, self.recordall, self.log, self.logall):
@@ -1504,7 +1506,8 @@ class TCLI(object):
     except ValueError:
       raise ValueError('Invalid timeout value %s.' % repr(args[0]))
 
-  def _CmdWrite(self, command:str, args:list[str], append:bool) ->str|ValueError:
+  def _CmdWrite(
+    self, command:str, args:list[str], append:bool) ->str|ValueError:
     """Writes out buffer content to file."""
 
     buf = args[0]
@@ -1550,7 +1553,7 @@ class TCLI(object):
   # End of command handles.                                                    #
   ##############################################################################
 
-  def _Print(self, msg, msgtype='default'):
+  def _Print(self, msg, msgtype='default') ->str|None:
     """Prints (and logs) outputs."""
 
     if not msg: return
