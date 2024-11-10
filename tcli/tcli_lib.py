@@ -1215,7 +1215,7 @@ class TCLI(object):
   #
   # pylint: disable=unused-argument
 
-  def _CmdBuffer(self, command, args, append=False):
+  def _CmdBuffer(self, command:str, args:list[str], append:bool=False):
     """"Displays buffer contents."""
 
     buffer_name = args[0]
@@ -1230,15 +1230,15 @@ class TCLI(object):
     self._Print(buf, msgtype='system')
     self._Print('#! ENDBUFFER !#', msgtype='warning')
 
-  def _CmdBufferList(self, command, args=None, append=False):
+  def _CmdBufferList(self, command:str, args:list[str], append:bool=False):
     """List all buffers."""
     return self.buffers.ListBuffers()
 
-  def _CmdClear(self, command, args, append=False):
+  def _CmdClear(self, command:str, args:list[str], append:bool=False):
     """Clears contrent of the buffer."""
     self.buffers.Clear(args[0])
 
-  def _CmdColorScheme(self, command, args=None, append=False):
+  def _CmdColorScheme(self, command:str, args:list[str], append:bool=False):
     """Sets ANSI color escape values."""
 
     if not args:
@@ -1266,11 +1266,11 @@ class TCLI(object):
         raise ValueError('Error: Unknown color scheme: %s' % scheme)
       self.color_scheme = scheme
 
-  def _CmdCommand(self, command, args, append):
+  def _CmdCommand(self, command:str, args:list[str], append:bool):
     """Submit command to devices."""
     self.CmdRequests(self.device_list, [args[0]], True)
 
-  def _CmdDefaults(self, command, args=None, append=False):
+  def _CmdDefaults(self, command:str, args:list[str], append:bool=False):
     """Reset commands to the 'at start' value."""
 
     if not args:
@@ -1289,7 +1289,7 @@ class TCLI(object):
       except Exception:
         raise ValueError("Cannot set '%s' to defaults." % default)
 
-  def _CmdDisplay(self, command, args, append):
+  def _CmdDisplay(self, command:str, args:list[str], append:bool):
     """Set the layout format."""
 
     if not args:
@@ -1303,7 +1303,7 @@ class TCLI(object):
           "Unknown display %s. Available displays are '%s'" % (
               repr(display_format), DISPLAY_FORMATS))
 
-  def _CmdEnv(self, command, args, append):
+  def _CmdEnv(self, command:str, args:list[str], append:bool):
     """Display various environment variables."""
 
     return ('Display: %s, Filter: %s\n'
@@ -1322,7 +1322,7 @@ class TCLI(object):
                self.linewrap,
                self.inventory.ShowEnv()))
 
-  def _CmdExecShell(self, command, args, append):
+  def _CmdExecShell(self, command:str, args:list[str], append:bool):
     """Executes a shell command."""
 
     try:
@@ -1334,7 +1334,7 @@ class TCLI(object):
 
     return output
 
-  def _CmdEditor(self, command, args, append):
+  def _CmdEditor(self, command:str, args:list[str], append:bool):
     """Edits the named buffer content."""
 
     buf = args[0]
@@ -1353,14 +1353,14 @@ class TCLI(object):
     self.buffers.Append(buf, buf_file.read())
     buf_file.close()
 
-  def _CmdExit(self, command, args=None, append=False):
+  def _CmdExit(self, command:str, args:list[str]=None, append:bool=False):
     """Exit TCLI."""
     raise EOFError()
 
-  def _CmdExpandTargets(self, command, args, append):
+  def _CmdExpandTargets(self, command:str, args:list[str], append:bool):
     return ','.join(self.device_list)
 
-  def _CmdFilter(self, command, args, append):
+  def _CmdFilter(self, command:str, args:list[str], append:bool):
     """Sets the clitable filter."""
 
     if not args:
@@ -1373,7 +1373,7 @@ class TCLI(object):
     except (clitable.CliTableError, texttable.TableError, IOError):
       raise ValueError('Invalid filter %s.' % repr(filter_name))
 
-  def _CmdHelp(self, command, args, append):
+  def _CmdHelp(self, command:str, args:list[str], append:bool):
     """Display help."""
 
     result = []
@@ -1390,7 +1390,7 @@ class TCLI(object):
                      self.cli_parser.GetCommand(cmd).help_str))
     return ''.join(result)
 
-  def _CmdInventory(self, command, args, append):
+  def _CmdInventory(self, command:str, args:list[str], append:bool):
     """Displays devices in target list."""
 
     device_list = []
@@ -1413,7 +1413,7 @@ class TCLI(object):
       device_list.append(', '.join(attr_list))
     return '\n'.join(device_list)
 
-  def _CmdLogging(self, command, args, append):
+  def _CmdLogging(self, command:str, args:list[str], append:bool):
     """Activates one of the various logging functions."""
 
     # If no arg then display what buffer is currently active.
@@ -1434,7 +1434,7 @@ class TCLI(object):
       self.buffers.Clear(buf)
     setattr(self, command, buf)
 
-  def _CmdLogStop(self, command, args, append=False):
+  def _CmdLogStop(self, command:str, args:list[str], append:bool=False):
     """Stop logging to a buffer."""
 
     buf = args[0]
@@ -1445,7 +1445,7 @@ class TCLI(object):
 
     raise ValueError('Buffer not in use for logging or recording.')
 
-  def _CmdMode(self, command, args, append):
+  def _CmdMode(self, command:str, args:list[str], append:bool):
     """Target CLI Mode to send to commands for."""
 
     if not args:
@@ -1458,7 +1458,7 @@ class TCLI(object):
       raise ValueError("Unknown mode %s. Available modes are '%s'" % (
           repr(mode), MODE_FORMATS))
 
-  def _CmdPlay(self, command, args, append):
+  def _CmdPlay(self, command:str, args:list[str], append:bool):
     """Plays out buffer contents to TCLI."""
 
     if self.playback is not None:
@@ -1472,7 +1472,7 @@ class TCLI(object):
       self.ParseCommands(self.buffers.GetBuffer(buf))
       self.playback = None
 
-  def _CmdRead(self, command, args, append):
+  def _CmdRead(self, command:str, args:list[str], append:bool):
     """"Write buffer content to file."""
 
     buf = args[0]
@@ -1495,7 +1495,7 @@ class TCLI(object):
     buf_file.close()
     return '%d lines read.' % self.buffers.GetBuffer(buf).count('\n')
 
-  def _CmdTimeout(self, command, args, append):
+  def _CmdTimeout(self, command:str, args:list[str], append:bool):
     """Sets or display the timeout setting."""
 
     if not args:
@@ -1509,7 +1509,7 @@ class TCLI(object):
     except ValueError:
       raise ValueError('Invalid timeout value %s.' % repr(args[0]))
 
-  def _CmdWrite(self, command, args, append):
+  def _CmdWrite(self, command:str, args:list[str], append:bool):
     """Writes out buffer content to file."""
 
     buf = args[0]
@@ -1535,7 +1535,7 @@ class TCLI(object):
 
     return '%d lines written.' % self.buffers.GetBuffer(buf).count('\n')
 
-  def _CmdToggleValue(self, command: str, args: list[str], append: bool):
+  def _CmdToggleValue(self, command:str, args:list[str], append:bool):
     """Commands that can 'toggle' their value."""
 
     if not args:
