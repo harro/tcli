@@ -47,11 +47,16 @@ import subprocess
 import sys
 import tempfile
 import threading
+import typing
 
 from absl import flags
 from absl import logging
-from pyreadline3.rlmain import Readline
-readline = Readline()
+try:
+  # For windows platform.
+  from pyreadline3.rlmain import Readline
+  readline = Readline()
+except(ImportError):
+  import readline
 from tcli import command_parser
 from tcli import command_register
 from tcli import command_response
@@ -221,8 +226,8 @@ class TCLI(object):
     self.display = None
     self.filter = None
     self.linewrap = False
-    self.mode: str|None = None
-    self.timeout: int|None = None
+    self.mode = 'cli'
+    self.timeout = 0
     # Buffers
     self.log = self.logall = ''
     self.record = self.recordall = ''
@@ -312,7 +317,7 @@ class TCLI(object):
     else:
       target_str = inv.targets
 
-    self.prompt = PROMPT_HDR.format(
+    self.prompt = PROMPT_HDR % (
       terminal.AnsiText(target_str, self.system_color),
       terminal.AnsiText(len(self.device_list), self.warning_color),
       terminal.AnsiText(safe, self.title_color))
@@ -419,7 +424,7 @@ class TCLI(object):
     """Command line completion used by readline library."""
 
     # Silently discard leading whitespace on cli.
-    full_line = readline.get_line_buffer().lstrip()
+    full_line = readline.get_line_buffer().lstrip() # type: ignore
     if full_line and full_line.startswith(SLASH):
       return self._TildeCompleter(full_line, state)
     return self._CmdCompleter(full_line, state)
@@ -432,8 +437,9 @@ class TCLI(object):
       cmd = full_line[1:full_line.index(' ')]
       arg_string = full_line[full_line.index(' ') + 1 :]
       completer_list = []
-      if self.cli_parser.GetCommand(cmd):
-        for arg_options in self.cli_parser.GetCommand(cmd).completer():
+      cmd_obj = self.cli_parser.GetCommand(cmd)
+      if cmd_obj:
+        for arg_options in cmd_obj.completer():
           if arg_options.startswith(arg_string):
             completer_list.append(arg_options)
 
@@ -447,7 +453,8 @@ class TCLI(object):
       # Strip TILDE and compare.
       if cmd.startswith(full_line[1 :]):
         completer_list.append(cmd)
-        if self.cli_parser.GetCommand(cmd).append:
+        cmd_obj = self.cli_parser.GetCommand(cmd)
+        if cmd_obj and cmd_obj.append:
           completer_list.append(cmd + command_parser.APPEND)
     completer_list.sort()
 
@@ -490,27 +497,28 @@ class TCLI(object):
           current_word = line_tokens.pop()
 
       # Compare with table of possible commands
-      for row in self.filter_engine.index.index:
-        # Split the regexp into tokens, re combine only as many as there are
-        # in the line entered so far.
-        cmd_tokens = row['Command'].split(' ')
-        # Does the line match the partial list of tokens.
-        if (line_tokens and
-            re.match(' '.join(cmd_tokens[:len(line_tokens)]), cleaned_line)):
-          # Take token not from end of regexp, but from the Completer command.
-          token = cmd_tokens[len(line_tokens)]
-        elif not line_tokens:
-          # Currently a blank line so the first token is what we want.
-          token = cmd_tokens[0]
-        else:
-          continue
-        # We have found a match.
-        # Remove completer syntax.
-        token = re.sub(r'\(|\)\?', '', token)
-        # If on word boundary or our current word is a partial match.
-        if word_boundary or token.startswith(current_word):
-          if token not in self._completer_list:
-            self._completer_list.append(token)
+      if self.filter_engine:
+        for row in self.filter_engine.index.index:
+          # Split the regexp into tokens, re combine only as many as there are
+          # in the line entered so far.
+          cmd_tokens = row['Command'].split(' ')
+          # Does the line match the partial list of tokens.
+          if (line_tokens and
+              re.match(' '.join(cmd_tokens[:len(line_tokens)]), cleaned_line)):
+            # Take token not from end of regexp, but from the Completer command.
+            token = cmd_tokens[len(line_tokens)]
+          elif not line_tokens:
+            # Currently a blank line so the first token is what we want.
+            token = cmd_tokens[0]
+          else:
+            continue
+          # We have found a match.
+          # Remove completer syntax.
+          token = re.sub(r'\(|\)\?', '', token)
+          # If on word boundary or our current word is a partial match.
+          if word_boundary or token.startswith(current_word):
+            if token not in self._completer_list:
+              self._completer_list.append(token)
 
     try:
       return self._completer_list[state]
@@ -557,12 +565,12 @@ class TCLI(object):
         # Backend commands.
         # Look for inline tilde commands.
         (inline_command, inline_tcli) = self._ExtractInlineCommands(command)
-        if inline_command != command:
+        if inline_tcli and inline_command != command:
           _FlushCommands(command_list)
           # Commands with inline display modifiers are submitted
           # to a child TCLI object that only supports inline commands.
           logging.debug('Inline Cmd: %s.', inline_command)
-          inline_tcli.ParseCommands(inline_command)
+          inline_tcli.ParseCommands(inline_command) # type: ignore
         else:
           # Otherwise collect multiple commands to send at once.
           command_list.append(command)
@@ -597,7 +605,7 @@ class TCLI(object):
     for buf in (self.record, self.recordall, self.log, self.logall):
       self.buffers.Append(buf, '\n'.join(command_list))
 
-    if not device_list or not command_list:
+    if not device_list or not command_list or not self.inventory:
       # Nothing to do.
       return
 
@@ -880,6 +888,7 @@ class TCLI(object):
 
       try:
         logging.debug('Parse response with attributes "%s".', filter_attr)
+        if not self.filter_engine: raise(CliTableError)
         self.filter_engine.ParseCmd(
             response.data, attributes=filter_attr, verbose=self.verbose)
       except CliTableError as error_message:
@@ -1102,6 +1111,9 @@ class TCLI(object):
   def _CmdEnv(self, command:str, args:list[str], append:bool) -> str:
     """Display various environment variables."""
 
+    if self.inventory:
+      inventory_str = self.inventory.ShowEnv()
+
     return '\n'.join([
       f'Display: {self.display}, Filter: {self.filter}',
       f'Record: {self.record}, Recordall: {self.recordall}',
@@ -1109,7 +1121,7 @@ class TCLI(object):
       f'Color: {self.color}, Scheme: {self.color_scheme}',
       f'Timeout: {self.timeout}, Verbose: {self.verbose}',
       f'CLI Mode: {self.mode}, Safemode: {self.safemode}',
-      f'Line Wrap: {self.linewrap}\n{self.inventory.ShowEnv()}'
+      f'Line Wrap: {self.linewrap}\n{inventory_str}'
       ])
 
   def _CmdExecShell(
@@ -1128,10 +1140,11 @@ class TCLI(object):
     """Edits the named buffer content."""
 
     buf = args[0]
-    buf_file = tempfile.NamedTemporaryFile()
+    buf_file: tempfile._TemporaryFileWrapper[bytes] = tempfile.NamedTemporaryFile()
     # Write out the buffer data to file.
-    if self.buffers.GetBuffer(buf):
-      buf_file.writelines(self.buffers.GetBuffer(buf))
+    content: str = self.buffers.GetBuffer(buf)
+    if content:
+      buf_file.write(content.encode('ascii'))
       # Flush content so editor will see it.
       buf_file.flush()
     #TODO(harro): Support os.getenv('EDITOR', 'vi').
@@ -1141,11 +1154,11 @@ class TCLI(object):
     # Read back the data into the buffer.
     buf_file.seek(0)
     self.buffers.Clear(buf)
-    self.buffers.Append(buf, buf_file.read())
+    self.buffers.Append(buf, buf_file.read().decode('ascii'))
     buf_file.close()
 
   def _CmdExit(
-    self, command:str, args:list[str]=None, append:bool=False) -> None:
+    self, command:str, args:list[str], append:bool=False) -> None:
     """Exit TCLI."""
     raise EOFError()
 
@@ -1156,8 +1169,7 @@ class TCLI(object):
     self, command:str, args:list[str], append:bool) -> str|None:
     """Sets the clitable filter."""
 
-    if not args:
-      return 'Filter: %s' % self.filter
+    if not args: return 'Filter: %s' % self.filter
 
     filter_name = args[0]
     try:
@@ -1169,15 +1181,17 @@ class TCLI(object):
   def _CmdHelp(self, command:str, args:list[str], append:bool):
     """Display help."""
 
-    result = []
+    result: list[str] = []
     # Print the brief comment regarding escape commands.
     for cmd in sorted(self.cli_parser):
-      append_str = '[+]' if self.cli_parser.GetCommand(cmd).append else ''
+      cmd_obj: typing.Any|None = self.cli_parser.GetCommand(cmd)
+      if not cmd_obj: continue
+      append_str = '[+]' if cmd_obj.append else ''
       arg = ''
-      if self.cli_parser.GetCommand(cmd).min_args:
+      if cmd_obj.min_args:
         arg = f' <{cmd}>'
       result.append(
-        f'{cmd}{append_str}{arg}{self.cli_parser.GetCommand(cmd).help_str}\n\n')
+        f'{cmd}{append_str}{arg}{cmd_obj.help_str}\n\n')
     return ''.join(result)
 
   def _CmdInventory(self, command:str, args:list[str], append:bool) -> str:
