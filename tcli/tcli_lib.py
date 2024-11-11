@@ -53,6 +53,7 @@ from absl import logging
 from pyreadline3.rlmain import Readline
 readline = Readline()
 from tcli import command_parser
+from tcli import command_register
 from tcli import command_response
 from tcli import text_buffer
 from tcli.command_parser import ParseError
@@ -70,10 +71,13 @@ from textfsm.texttable import TableError
 from tcli import inventory_csv as inventory  #pylint: disable=g-bad-import-order
 
 # Formats for displaying to the user.
-DISPLAY_FORMATS = ['raw', 'csv', 'tbl', 'nvp']
+DISPLAY_FORMATS = command_register.DISPLAY_FORMATS
 
 # cli modes on the target device.
-MODE_FORMATS = ['cli', 'gated', 'http', 'shell']
+MODE_FORMATS = command_register.MODE_FORMATS
+
+# Display color combinations.
+COLOR_SCHEMES = command_register.COLOR_SCHEMES
 
 # TCLI (local) command prefix.
 SLASH = '/'
@@ -99,93 +103,11 @@ MOTD = f"""#!{'#'*BANNER_WIDTH}!#'
 #! Have a nice day!
 #!{'#'*BANNER_WIDTH}!#"""
 
-# Text displayed by online help.
-# The keys are the list of permissable escape commands.
-INDENT = f'\n' + ' '*4
-TILDE_COMMAND_HELP = {
-  'buffer': f'{INDENT}Show contents of buffer.',
-  'bufferlist':
-    f'{INDENT}Show buffers currently in use (written to and not cleared).',
-  'clear': f'{INDENT}Deletes contents of named buffer.',
-  'color': f'{INDENT}Toggle color support.',
-  'color_scheme':
-    f"{INDENT}Use 'light' scheme on dark background or 'dark' otherwise.",
-  'command':
-    f"{INDENT}Submit command to target device's. Safe mode enforces use of "
-    f"{INDENT}'command' for sending input to targets."
-    f"{INDENT}Shortname: 'C'.",
-  'defaults':
-    f'{INDENT}Returns environment to startup/factory defaults.'
-    f'{INDENT}Supply argument to set a specific value back to default,'
-    f"{INDENT}or 'all' to return everything to the defaults.",
-  'display':
-    f'{INDENT}Extensible set of routines used for formatting command output.'
-    f'{INDENT}Available display formats are: {DISPLAY_FORMATS}'
-    f"{INDENT}Shortname: 'D'.",
-  'env': f'{INDENT}Display current escape command settings.',
-  'exec':
-    f'{INDENT}Execute command in shell.'
-    f"{INDENT}Shortname: '!'.",
-  'exit': f'{INDENT}Exit tcli.',
-  'expandtargets':
-    f"{INDENT}Displays the expanded list of devices matched by 'targets' and"
-    f"{INDENT}not matched by 'xtargets'.",
-  'filter':
-    f'{INDENT}File name that maps templates for extracting data from output.'
-    f"{INDENT}Is disabled if display is in 'raw' mode."
-    f"{INDENT}Shortname: 'F'.",
-  'help': f'{INDENT}Display escape command online help.',
-  'inventory':
-    f'{INDENT}Displays attributes of matched targets.'
-    f"{INDENT}Shortname: 'V'.",
-  'linewrap': f'{INDENT}Set line wrap for displayed data.',
-  'log':
-    f'{INDENT}Record commands and device output to buffer.'
-    f'{INDENT}Does not include escape commands or output from these commands.',
-  'logall':
-    f'{INDENT}Record both commands and escape commands and output to buffer.',
-  'logstop':
-    f"{INDENT}Stop recording or logging to named buffer (same as 'recordstop'.",
-  'mode':
-    f'{INDENT}CLI mode for command.'
-    f'{INDENT}Available command modes are: {MODE_FORMATS}.'
-    f"{INDENT}Shortname: 'M'.",
-  'quit': f'{INDENT}Exit by another name.',
-  'read':
-    f'{INDENT}Read contents of file and store in buffer.'
-    f'{INDENT}File name is specified at a subsequent prompt.',
-  'record':
-    f'{INDENT}Record commands to named <buffer>.'
-    f'{INDENT}If command is appended with'
-    f' {command_parser.APPEND} then append to buffer.',
-  'recordall':
-    f'{INDENT}Record commands and escape commands to named <buffer>.'
-    f'{INDENT}If command is appended with'
-    f' {command_parser.APPEND} then append to buffer.',
-  'recordstop':
-    f"{INDENT}Stop recording or logging to named buffer (same as 'logstop').",
-  'safemode':
-    f"{INDENT}Do not forward input to 'targets' unless using 'command'."
-    f"{INDENT}Shortname: 'S'.",
-  'timeout':
-    f'{INDENT}Period (in seconds) to wait for outstanding command responses.',
-  'play':
-    f'{INDENT}Play out recorded keystrokes from named buffer to target '
-    f"device/s.{INDENT}Shortname: 'P'.",
-  'write':
-    f'{INDENT}Dumps contents of buffer to file.'
-    f'{INDENT}File name is specified at a subsequent prompt.',
-  'verbose': f'{INDENT}Display extra data columns in output (for csv mode).',
-  'vi': f'{INDENT}Opens buffer in vi editor.',
-}
-
 # Prompt displays the target string, count of targets and if safe mode is on.
 PROMPT_HDR = '#! <%s[%s]%s> !#'
 PROMPT_STR = '#! '
 
-# Colour values.
-COLOR_SCHEMES = ['light', 'dark', 'gross']
-
+# Colour mapping depending on colour scheme.
 LIGHT_SYSTEM_COLOR = ['yellow']
 LIGHT_WARNING_COLOR = ['red']
 LIGHT_TITLE_COLOR = ['cyan']
@@ -198,74 +120,37 @@ GROSS_SYSTEM_COLOR = ['bold', 'magenta', 'bg_cyan']
 GROSS_WARNING_COLOR = ['bold', 'yellow', 'bg_magenta']
 GROSS_TITLE_COLOR = ['bold', 'red', 'bg_green']
 
-# Flag defaults.
-DEFAULT_CMDS = {
-    'color': True,
-    'color_scheme': 'light',
-    'display': 'raw',
-    'filter': 'default_index',
-    'linewrap': False,
-    'mode': 'cli',
-    'timeout': 45
-}
 # Default path for config commands. Commands are run from this file at startup.
 DEFAULT_CONFIGFILE = os.path.join(os.path.expanduser('~'), '.tclirc')
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string(
-  'template_dir', os.path.join(os.path.dirname(__file__), 'testdata'),
-  f'{INDENT}Path where command templates are located', short_name='t')
-
-flags.DEFINE_boolean(
-  'interactive', False,
-  f'{INDENT}tcli runs in interactive mode. This is the default mode if no'
-  ' cmds are supplied.\n', short_name='I')
-
-flags.DEFINE_boolean(
-  'color', DEFAULT_CMDS['color'], f'{INDENT}Use color when displaying results.')
-
-flags.DEFINE_enum(
-  'color_scheme', DEFAULT_CMDS['color_scheme'], COLOR_SCHEMES,
-  TILDE_COMMAND_HELP['color_scheme'])
-
-flags.DEFINE_boolean(
-  'dry_run', False,
-  f'{INDENT}Display commands and targets, without submitting commands.')
-
-flags.DEFINE_boolean(
-  'linewrap', DEFAULT_CMDS['linewrap'],
-  f'{INDENT}Override default line wrap behavior.')
+I = '\n' + ' '*4
 
 flags.DEFINE_string(
   'cmds', None,
-  f'{INDENT}Commands (newline separated) to send to devices in the target list.'
-  f"{INDENT}'Prompting' commands, commands that request further input from the"
-  f'{INDENT}user before completing are discouraged and will fail.\n'
-  f'{INDENT}Examples to avoid: telnet, ping, reload.', short_name='C')
+  f'{I}Commands (newline separated) to send to devices in the target list.'
+  f"{I}'Prompting' commands, commands that request further input from the"
+  f'{I}user before completing are discouraged and will fail.\n'
+  f'{I}Examples to avoid: telnet, ping, reload.', short_name='C')
 
 flags.DEFINE_string(
   'config_file', DEFAULT_CONFIGFILE,
-  f'{INDENT}Configuration file to read. Lines in this file will be read into '
-  f'{INDENT}buffer "startup" and played.'
-  f"{INDENT}Skipped if file name is the string 'None|none'", short_name='R')
+  f'{I}Configuration file to read. Lines in this file will be read into '
+  f'{I}buffer "startup" and played.'
+  f"{I}Skipped if file name is the string 'None|none'", short_name='R')
 
-flags.DEFINE_enum(
-  'display', DEFAULT_CMDS['display'], DISPLAY_FORMATS,
-  TILDE_COMMAND_HELP['display'], short_name='D')
+flags.DEFINE_boolean(
+  'dry_run', False,
+  f'{I}Display commands and targets, without submitting commands.')
 
-flags.DEFINE_enum(
-  'mode', DEFAULT_CMDS['mode'], MODE_FORMATS, TILDE_COMMAND_HELP['mode'],
-  short_name='M')
+flags.DEFINE_boolean(
+  'interactive', False,
+  f'{I}tcli runs in interactive mode. This is the default mode if no'
+  ' cmds are supplied.\n', short_name='I')
 
-flags.DEFINE_enum(
-  'filter', DEFAULT_CMDS['filter'], ['default_index', ''],
-  TILDE_COMMAND_HELP['filter'], short_name='F')
-
-flags.DEFINE_integer(
-  'timeout', DEFAULT_CMDS['timeout'], TILDE_COMMAND_HELP['timeout'],
-  short_name='O')
-
-flags.DEFINE_boolean('sorted', False, 'Sort device entries in output.')
+flags.DEFINE_string(
+  'template_dir', os.path.join(os.path.dirname(__file__), 'testdata'),
+  f'{I}Path where command templates are located', short_name='t')
 
 
 class Error(Exception):
@@ -472,102 +357,7 @@ class TCLI(object):
 
   def RegisterCommands(self, cli_parser:command_parser.CommandParser) ->None:
     """Register commands supported by TCLI core functions."""
-
-    cli_parser.RegisterCommand(
-        'buffer', TILDE_COMMAND_HELP['buffer'], min_args=1,
-        handler=self._CmdBuffer)
-    cli_parser.RegisterCommand(
-        'bufferlist', TILDE_COMMAND_HELP['bufferlist'], max_args=0,
-        handler=self._CmdBufferList)
-    cli_parser.RegisterCommand(
-        'clear', TILDE_COMMAND_HELP['clear'], min_args=1,
-        handler=self._CmdClear)
-    cli_parser.RegisterCommand(
-        'color', TILDE_COMMAND_HELP['color'], inline=True, toggle=True,
-        default_value=FLAGS.color, handler=self._CmdToggleValue,
-        completer=lambda: ['on', 'off'])
-    cli_parser.RegisterCommand(
-        'color_scheme', TILDE_COMMAND_HELP['color_scheme'],
-        inline=True, default_value=FLAGS.color_scheme,
-        handler=self._CmdColorScheme, completer=lambda: COLOR_SCHEMES)
-    cli_parser.RegisterCommand(
-        'command', TILDE_COMMAND_HELP['command'], short_name='C', min_args=1,
-        raw_arg=True, handler=self._CmdCommand)
-    cli_parser.RegisterCommand(
-        'defaults', TILDE_COMMAND_HELP['defaults'], handler=self._CmdDefaults)
-    cli_parser.RegisterCommand(
-        'display', TILDE_COMMAND_HELP['display'], short_name='D', inline=True,
-        default_value=FLAGS.display, handler=self._CmdDisplay,
-        completer=lambda: DISPLAY_FORMATS)
-    cli_parser.RegisterCommand(
-        'env', TILDE_COMMAND_HELP['env'], max_args=0, handler=self._CmdEnv)
-    cli_parser.RegisterCommand(
-        'exec', TILDE_COMMAND_HELP['exec'], short_name='!', min_args=1,
-        raw_arg=True, handler=self._CmdExecShell)
-    cli_parser.RegisterCommand(
-        'exit', TILDE_COMMAND_HELP['exit'], inline=True, max_args=0,
-        handler=self._CmdExit)
-    cli_parser.RegisterCommand(
-        'expandtargets', TILDE_COMMAND_HELP['expandtargets'], max_args=0,
-        handler=self._CmdExpandTargets)
-    cli_parser.RegisterCommand(
-        'filter', TILDE_COMMAND_HELP['filter'], short_name='F',
-        inline=True, default_value=FLAGS.filter, handler=self._CmdFilter)
-    cli_parser.RegisterCommand(
-        'help', TILDE_COMMAND_HELP['help'], max_args=0,
-        inline=True, handler=self._CmdHelp)
-    cli_parser.RegisterCommand(
-        'inventory', TILDE_COMMAND_HELP['inventory'], short_name='V',
-        max_args=0, handler=self._CmdInventory)
-    cli_parser.RegisterCommand(
-        'linewrap', TILDE_COMMAND_HELP['linewrap'],
-        inline=True, toggle=True, default_value=FLAGS.linewrap,
-        handler=self._CmdToggleValue, completer=lambda: ['on', 'off'])
-    cli_parser.RegisterCommand(
-        'log', TILDE_COMMAND_HELP['log'], append=True, inline=True,
-        handler=self._CmdLogging)
-    cli_parser.RegisterCommand(
-        'logall', TILDE_COMMAND_HELP['logall'], append=True, inline=True,
-        handler=self._CmdLogging)
-    cli_parser.RegisterCommand(
-        'logstop', TILDE_COMMAND_HELP['logstop'], inline=True, min_args=1,
-        handler=self._CmdLogStop)
-    cli_parser.RegisterCommand(
-        'mode', TILDE_COMMAND_HELP['mode'], short_name='M', inline=True,
-        default_value=FLAGS.mode, handler=self._CmdMode)
-    cli_parser.RegisterCommand(
-        'play', TILDE_COMMAND_HELP['play'], short_name='P', min_args=1,
-        handler=self._CmdPlay)
-    cli_parser.RegisterCommand(
-        'quit', TILDE_COMMAND_HELP['quit'], inline=True, max_args=0,
-        handler=self._CmdExit)
-    cli_parser.RegisterCommand(
-        'read', TILDE_COMMAND_HELP['read'], append=True, min_args=1, max_args=2,
-        handler=self._CmdRead)
-    cli_parser.RegisterCommand(
-        'record', TILDE_COMMAND_HELP['record'], append=True, inline=True,
-        handler=self._CmdLogging)
-    cli_parser.RegisterCommand(
-        'recordall', TILDE_COMMAND_HELP['recordall'], append=True, inline=True,
-        handler=self._CmdLogging)
-    cli_parser.RegisterCommand(
-        'recordstop', TILDE_COMMAND_HELP['recordstop'], inline=True, min_args=1,
-        handler=self._CmdLogStop)
-    cli_parser.RegisterCommand(
-        'safemode', TILDE_COMMAND_HELP['safemode'], short_name='S', inline=True,
-        toggle=True, handler=self._CmdToggleValue,
-        completer=lambda: ['on', 'off'])
-    cli_parser.RegisterCommand(
-        'timeout', TILDE_COMMAND_HELP['timeout'],
-        default_value=FLAGS.timeout, handler=self._CmdTimeout)
-    cli_parser.RegisterCommand(
-        'write', TILDE_COMMAND_HELP['write'], append=True, min_args=1,
-        max_args=2, handler=self._CmdWrite)
-    cli_parser.RegisterCommand(
-        'verbose', TILDE_COMMAND_HELP['verbose'], inline=True, toggle=True,
-        handler=self._CmdToggleValue, completer=lambda: ['on', 'off'])
-    cli_parser.RegisterCommand(
-        'vi', TILDE_COMMAND_HELP['vi'], min_args=1, handler=self._CmdEditor)
+    command_register.RegisterCommands(self, cli_parser, I)
 
   def StartUp(self, commands, interactive) ->None:
     """Runs rc file commands and initial startup tasks.
@@ -620,7 +410,8 @@ class TCLI(object):
     """
 
     # Calling the handlers directly will not be logged.
-    for command_name in DEFAULT_CMDS:
+    for command_name in ('color', 'color_scheme', 'display', 'filter',
+                         'linewrap', 'mode', 'timeout'):
       self.cli_parser.ExecWithDefault(command_name)
 
   # pylint: disable=unused-argument
@@ -794,7 +585,7 @@ class TCLI(object):
 
   def CmdRequests(
     self, device_list:list[str], command_list:list[str], explicit_cmd:bool=False
-    ) ->None:
+    ) -> None:
     """Submits command list to devices and receives responses.
 
     Args:
@@ -1245,7 +1036,7 @@ class TCLI(object):
       return self.color_scheme
     
     scheme = args[0]
-    if scheme not in ('light', 'dark', 'gross'):
+    if scheme not in COLOR_SCHEMES:
       raise ValueError(f"Error: Unknown color scheme: '{scheme}'")
 
     self.color_scheme = scheme

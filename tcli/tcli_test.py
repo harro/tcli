@@ -1169,7 +1169,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.display = 'dstring'
     # Check that reseting 'mode', resets this (and only this) variable.
     self.tcli_obj._CmdDefaults('defaults', ['mode'])
-    self.assertEqual(tcli.DEFAULT_CMDS['mode'], self.tcli_obj.mode)
+    self.assertEqual('cli', self.tcli_obj.mode)
     self.assertEqual('dstring', self.tcli_obj.display)
 
     self.tcli_obj.mode = 'estring'
