@@ -212,17 +212,17 @@ class TCLI(object):
     self.interactive = False
     self.filter_engine = None
     self.playback = None
-    self.prompt = None
+    self.prompt: str|None = None
     self.safemode = False
     self.verbose = False
     # Attributes with defaults set by flags.
     self.color = True
-    self.color_scheme = None
+    self.color_scheme: str|None = None
     self.display = None
     self.filter = None
     self.linewrap = False
-    self.mode = None
-    self.timeout = None
+    self.mode: str|None = None
+    self.timeout: int|None = None
     # Buffers
     self.log = self.logall = ''
     self.record = self.recordall = ''
@@ -233,7 +233,7 @@ class TCLI(object):
     self.cmd_response = command_response.CmdResponse()
     self.cli_parser = command_parser.CommandParser()
     if not hasattr(self, 'inventory'):
-      self.inventory = None
+      self.inventory: inventory.Inventory|None = None
 
   def __copy__(self):
     """Copies attributes from self to new tcli child object."""
