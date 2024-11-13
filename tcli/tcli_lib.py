@@ -85,7 +85,7 @@ MODE_FORMATS = command_register.MODE_FORMATS
 COLOR_SCHEMES = command_register.COLOR_SCHEMES
 
 # TCLI (local) command prefix.
-SLASH = '/'
+SLASH = command_parser.SLASH
 # pylint: disable=redefined-builtin
 if __doc__: __doc__ = __doc__.replace('%s', SLASH)
 
@@ -129,7 +129,7 @@ GROSS_TITLE_COLOR = ['bold', 'red', 'bg_green']
 DEFAULT_CONFIGFILE = os.path.join(os.path.expanduser('~'), '.tclirc')
 
 FLAGS = flags.FLAGS
-I = '\n' + ' '*4
+I = command_parser.I
 
 flags.DEFINE_string(
   'cmds', None,
@@ -559,20 +559,25 @@ class TCLI(object):
       # TCLI commands.
       if command.startswith(SLASH):
         _FlushCommands(command_list)
-        # Remove tilde command prefix and submit to TCLI command interpreter.
+        # Remove command prefix and submit to TCLI command interpreter.
         self.TildeCmd(command[1 :])
       else:
         # Backend commands.
-        # Look for inline tilde commands.
-        (inline_command, inline_tcli) = self._ExtractInlineCommands(command)
-        if inline_tcli and inline_command != command:
+        # Look for inline commands.
+        (command_prefix, inline_commands
+         ) = self.cli_parser.ExtractInlineCommands(command)
+        if inline_commands:
+          # Send any commands we have collecte so far.
           _FlushCommands(command_list)
           # Commands with inline display modifiers are submitted
-          # to a child TCLI object that only supports inline commands.
-          logging.debug('Inline Cmd: %s.', inline_command)
-          inline_tcli.ParseCommands(inline_command) # type: ignore
+          # to a copy of the  TCLI object with the inline modifiers applied.
+          logging.debug('Inline Cmd: %s.', inline_commands)
+          inline_tcli = copy.copy(self)
+          for cmd in inline_commands:
+            inline_tcli.TildeCmd(cmd)
+          inline_tcli.ParseCommands(command_prefix)
         else:
-          # Otherwise collect multiple commands to send at once.
+          # Otherwise continue collecting multiple commands to send at once.
           command_list.append(command)
 
     _FlushCommands(command_list)
@@ -628,7 +633,7 @@ class TCLI(object):
     # Responses from hosts for a single command are known as a 'row'.
     for cmd_row, command in enumerate(command_list):
       # Split off client side pipe command.
-      (command, pipe) = self._ExtractPipe(command)
+      (command, pipe) = self.cli_parser.ExtractPipe(command)
       logging.debug("Extracted command and pipe: '%s' & '%s'.", command, pipe)
       self.cmd_response.SetCommandRow(cmd_row, pipe)
 
@@ -663,10 +668,10 @@ class TCLI(object):
     logging.debug('CmdRequests: All callbacks completed.')
 
   def TildeCmd(self, line:str) -> None:
-    """Tilde escape tcli configuration command.
+    f"""TCLI configuration command.
 
     Args:
-      line: String command for TCLI parsing.
+      line: String command for TCLI parsing. Minus the {SLASH} escape prefix.
 
     Raises:
       EOFError: If exit is issued.
@@ -697,125 +702,6 @@ class TCLI(object):
     # pylint: disable=broad-except
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
-
-  def _ExtractInlineCommands(self, command:str) -> tuple[str,object]:
-    # pylint: disable=missing-docstring
-    """Separate out linewise commmand overrides from command input.
-
-    Converts something like:
-      'cat alpha | grep abc || grep xyz %sdisplay csv %slog buffername'
-    Into:
-      command = ['cat alpha | grep ablc || grep xyz']
-      display = 'csv'
-      log = 'buffername'
-
-    Double tilde '%s' that are not preceded by a space and are
-    part of a valid command are ignored and treated as part of the command body.
-
-      'show flash:%sfile_name %sbogus %slog filelist'
-    Converts into:
-      ('show flash:%sfile_name %sbogus', ((%slog filelist),))
-
-    Creates child TCLI object with runtime environment modified by the values
-    pulled from the inline arguments.
-
-    Args:
-      command: str, command issued to target devices.
-
-    Returns:
-      Tuple, the command line with inline TCLI commands removed and TCLI
-      instance with the tilde commands applied (None if no tilde commands).
-    """.replace('%s', (SLASH * 2))
-
-    if '%s' % (SLASH * 2) not in command:
-      return (command, None)
-
-    # Create new child with inline escape command changes.
-    inline_tcli = copy.copy(self)
-
-    token_list = command.split(' %s' % (SLASH * 2))
-    # If all tokens parse then the first token is the commandline.
-    command_left = token_list[0]
-    command_right = token_list[1 :]
-    # Reverse the order of the tokens so that we work right to left.
-    command_right.reverse()
-    index = len(command_right)
-    for token in command_right:
-      # Confirm that is parses and executes cleanly.
-      try:
-        (new_cmd, args, append) = inline_tcli.cli_parser.ParseCommandLine(token)
-        inline_tcli.cli_parser.ExecHandler(new_cmd, args, append)
-      except (ValueError, ParseError):
-        # If a token doesn't parse then it and all tokens to the left are
-        # returned to the commandline.
-        command_left = (' %s' % (SLASH * 2)).join(token_list[:index + 1])
-        break
-      except EOFError:
-        # Exit in this context stop further inline command parsing.
-        # Inline commands to the left of the exit are treated as regular input.
-        command_left = (' %s' % (SLASH * 2)).join(token_list[:index])
-        break
-      index -= 1
-
-    return (command_left, inline_tcli)
-
-  def _ExtractPipe(self, command:str) -> tuple[str,str]:
-    """Separate out local pipe suffix from command input.
-
-    Converts something like:
-      'cat alpha | grep abc || grep xyz || grep -v "||"'
-    Into:
-      ('cat alpha | grep abc', 'grep xyz | grep -v "||"')
-
-    Args:
-      command: str, command issued to target devices.
-
-    Returns:
-      Tuple with the first argument being the text to pass on to the device
-      and the second value is the local pipe with the '||' replaced with '|'.
-    """
-
-    # Trivial case, there is no pipes.
-    if '||' not in command:
-      return (command, '')
-
-    found_single_pipe = False
-    dbl_pipe_str = ''
-    cmd_str = ''
-    # Split out quoted and non-quoted text and work through from the right.
-    for cmd_elem in reversed(
-        re.findall("""([^"']+)|("[^"]*")|('[^']*')""", command)):
-      (nonquoted, _, _) = cmd_elem
-      if nonquoted and not found_single_pipe:
-        # At this point we have non-quoted text that may have '|' or '||' in it.
-        # Convert something like:
-        #   '0 || 1 | 2 || 3 |||'
-        # Into:
-        #   ('0 || 1 | 2', '| 3 |||')
-
-        tmp_str = ''
-        # Split out pipe commands and work through from right.
-        for pipe_elem in reversed(re.findall(r'([^|]+)|(\|+)', nonquoted)):
-          (pipe_text, pipe_cmd) = pipe_elem
-          if not pipe_cmd:
-            tmp_str = pipe_text + tmp_str
-            continue
-
-          if pipe_cmd == '||' and not found_single_pipe:
-            dbl_pipe_str = '|' + tmp_str + cmd_str + dbl_pipe_str
-            cmd_str = ''
-            tmp_str = ''
-          else:
-            if pipe_cmd == '|':
-              # No more double pipe elements.
-              found_single_pipe = True
-            tmp_str = pipe_cmd + tmp_str
-
-        cmd_str = tmp_str + cmd_str
-      else:
-        cmd_str = ''.join(cmd_elem) + cmd_str
-
-    return (cmd_str.rstrip(), dbl_pipe_str.strip())
 
   def _FormatRaw(self, response:inventory.CmdResponse, pipe:str='') -> None:
     """Display response in raw format."""
