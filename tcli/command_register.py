@@ -9,7 +9,7 @@ DISPLAY_FORMATS = ['raw', 'csv', 'tbl', 'nvp']
 MODE_FORMATS = ['cli', 'gated', 'http', 'shell']
 
 # Flag help string indentation.
-I = command_parser.I
+I = '\n' + ' '*4
 
 # Commands that can be populated at invocation, as well as during execution.
 FLAGS = flags.FLAGS
