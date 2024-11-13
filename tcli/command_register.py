@@ -250,7 +250,8 @@ def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:
     harmless.
   """
 
-  # Calling the handlers directly will not be logged.
+  # Called against each flag declared in this module.
   for command_name in ('color', 'color_scheme', 'display', 'filter',
                         'linewrap', 'mode', 'timeout'):
+    # Calling the handlers directly will not be logged.
     cli_parser.ExecWithDefault(command_name)

@@ -956,8 +956,7 @@ class TCLI(object):
     default = args[0]
     if default == 'all':
       # Reapply explicit flags.
-      # TODO(harro): Only sets some core values (with flags), could reset more?
-      self.SetDefaults()
+      command_register.SetFlagDefaults(self.cli_parser)
       if self.inventory:
         self._SetFiltersFromDefaults(self.inventory)
       return
