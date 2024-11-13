@@ -52,8 +52,7 @@ flags.DEFINE_integer(
 flags.DEFINE_boolean('sorted', False, 'Sort device entries in output.')
 
 def RegisterCommands(
-    command_object, cli_parser:command_parser.CommandParser,
-    indent:str) -> None:
+    command_object, cli_parser:command_parser.CommandParser) -> None:
   """Register TCLI CLI commands.
   
   Attributes:
@@ -64,17 +63,17 @@ def RegisterCommands(
 
   cli_parser.RegisterCommand(
     'buffer',
-    f'{indent}Show contents of buffer.', min_args=1,
+    f'{I}Show contents of buffer.', min_args=1,
     handler=command_object._CmdBuffer)
   
   cli_parser.RegisterCommand(
     'bufferlist',
-    f'{indent}Show buffers currently in use (written to and not cleared).',
+    f'{I}Show buffers currently in use (written to and not cleared).',
     max_args=0, handler=command_object._CmdBufferList)
   
   cli_parser.RegisterCommand(
     'clear',
-    f'{indent}Deletes contents of named buffer.', min_args=1,
+    f'{I}Deletes contents of named buffer.', min_args=1,
     handler=command_object._CmdClear)
   
   cli_parser.RegisterCommand(
@@ -91,17 +90,17 @@ def RegisterCommands(
   
   cli_parser.RegisterCommand(
     'command', 
-    f"{indent}Submit command to target device's. Safe mode enforces use of "
-    f"{indent}'command' for sending input to targets."
-    f"{indent}Shortname: 'C'.",
+    f"{I}Submit command to target device's. Safe mode enforces use of "
+    f"{I}'command' for sending input to targets."
+    f"{I}Shortname: 'C'.",
     short_name='C', min_args=1, raw_arg=True,
     handler=command_object._CmdCommand)
   
   cli_parser.RegisterCommand(
     'defaults', 
-    f'{indent}Returns environment to startup/factory defaults.'
-    f'{indent}Supply argument to set a specific value back to default,'
-    f"{indent}or 'all' to return everything to the defaults.",
+    f'{I}Returns environment to startup/factory defaults.'
+    f'{I}Supply argument to set a specific value back to default,'
+    f"{I}or 'all' to return everything to the defaults.",
     handler=command_object._CmdDefaults)
   
   cli_parser.RegisterCommand(
@@ -112,25 +111,25 @@ def RegisterCommands(
   
   cli_parser.RegisterCommand(
     'env', 
-    f'{indent}Display current escape command settings.',
+    f'{I}Display current escape command settings.',
     max_args=0, handler=command_object._CmdEnv)
   
   cli_parser.RegisterCommand(
     'exec', 
-    f'{indent}Execute command in shell.'
-    f"{indent}Shortname: '!'.",
+    f'{I}Execute command in shell.'
+    f"{I}Shortname: '!'.",
     short_name='!', min_args=1, raw_arg=True,
     handler=command_object._CmdExecShell)
   
   cli_parser.RegisterCommand(
     'exit',
-    f'{indent}Exit tcli.',
+    f'{I}Exit tcli.',
     inline=True, max_args=0, handler=command_object._CmdExit)
   
   cli_parser.RegisterCommand(
     'expandtargets',
-    f"{indent}Displays the expanded list of devices matched by 'targets' and"
-    f"{indent}not matched by 'xtargets'.",
+    f"{I}Displays the expanded list of devices matched by 'targets' and"
+    f"{I}not matched by 'xtargets'.",
     max_args=0, handler=command_object._CmdExpandTargets)
   
   cli_parser.RegisterCommand(
@@ -140,13 +139,13 @@ def RegisterCommands(
     handler=command_object._CmdFilter)
   
   cli_parser.RegisterCommand(
-    'help', f'{indent}Display escape command online help.',
+    'help', f'{I}Display escape command online help.',
     max_args=0, inline=True, handler=command_object._CmdHelp)
   
   cli_parser.RegisterCommand(
     'inventory',
-    f'{indent}Displays attributes of matched targets.'
-    f"{indent}Shortname: 'V'.",
+    f'{I}Displays attributes of matched targets.'
+    f"{I}Shortname: 'V'.",
     short_name='V',
     max_args=0, handler=command_object._CmdInventory)
   
@@ -158,19 +157,19 @@ def RegisterCommands(
   
   cli_parser.RegisterCommand(
     'log', 
-    f'{indent}Record commands and device output to buffer.'
-    f'{indent}Does not include escape commands or output from these commands.',
+    f'{I}Record commands and device output to buffer.'
+    f'{I}Does not include escape commands or output from these commands.',
     append=True, inline=True,
     handler=command_object._CmdLogging)
   
   cli_parser.RegisterCommand(
     'logall',
-    f'{indent}Record both commands and escape commands and output to buffer.',
+    f'{I}Record both commands and escape commands and output to buffer.',
     append=True, inline=True, handler=command_object._CmdLogging)
   
   cli_parser.RegisterCommand(
     'logstop',
-    f"{indent}Stop recording or logging to named buffer (same as 'recordstop'.",
+    f"{I}Stop recording or logging to named buffer (same as 'recordstop'.",
     inline=True, min_args=1, handler=command_object._CmdLogStop)
   
   cli_parser.RegisterCommand(
@@ -181,44 +180,44 @@ def RegisterCommands(
   
   cli_parser.RegisterCommand(
     'play',
-    f'{indent}Play out recorded keystrokes from named buffer to target '
-    f"device/s.{indent}Shortname: 'P'.",
+    f'{I}Play out recorded keystrokes from named buffer to target '
+    f"device/s.{I}Shortname: 'P'.",
     short_name='P', min_args=1, handler=command_object._CmdPlay)
   
   cli_parser.RegisterCommand(
     'quit',
-    f'{indent}Exit by another name.',
+    f'{I}Exit by another name.',
     inline=True, max_args=0, handler=command_object._CmdExit)
   
   cli_parser.RegisterCommand(
     'read',
-    f'{indent}Read contents of file and store in buffer.'
-    f'{indent}File name is specified at a subsequent prompt.',
+    f'{I}Read contents of file and store in buffer.'
+    f'{I}File name is specified at a subsequent prompt.',
     append=True, min_args=1, max_args=2, handler=command_object._CmdRead)
   
   cli_parser.RegisterCommand(
     'record',
-    f'{indent}Record commands to named <buffer>.'
-    f'{indent}If command is appended with {command_parser.APPEND} then'
+    f'{I}Record commands to named <buffer>.'
+    f'{I}If command is appended with {command_parser.APPEND} then'
     ' append to buffer.',
     append=True, inline=True, handler=command_object._CmdLogging)
   
   cli_parser.RegisterCommand(
     'recordall',
-    f'{indent}Record commands and escape commands to named <buffer>.'
-    f'{indent}If command is appended with {command_parser.APPEND} then'
+    f'{I}Record commands and escape commands to named <buffer>.'
+    f'{I}If command is appended with {command_parser.APPEND} then'
     ' append to buffer.',
     append=True, inline=True, handler=command_object._CmdLogging)
   
   cli_parser.RegisterCommand(
     'recordstop',
-    f"{indent}Stop recording or logging to named buffer (same as 'logstop').",
+    f"{I}Stop recording or logging to named buffer (same as 'logstop').",
     inline=True, min_args=1, handler=command_object._CmdLogStop)
   
   cli_parser.RegisterCommand(
     'safemode',
-    f"{indent}Do not forward input to 'targets' unless using 'command'."
-    f"{indent}Shortname: 'S'.",
+    f"{I}Do not forward input to 'targets' unless using 'command'."
+    f"{I}Shortname: 'S'.",
     short_name='S', inline=True, toggle=True,
     handler=command_object._CmdToggleValue, completer=lambda: ['on', 'off'])
   
@@ -229,18 +228,18 @@ def RegisterCommands(
   
   cli_parser.RegisterCommand(
     'write',
-    f'{indent}Dumps contents of buffer to file.'
-    f'{indent}File name is specified at a subsequent prompt.',
+    f'{I}Dumps contents of buffer to file.'
+    f'{I}File name is specified at a subsequent prompt.',
     append=True, min_args=1, max_args=2, handler=command_object._CmdWrite)
   
   cli_parser.RegisterCommand(
     'verbose',
-    f'{indent}Display extra data columns in output (for csv mode).',
+    f'{I}Display extra data columns in output (for csv mode).',
     inline=True, toggle=True, handler=command_object._CmdToggleValue,
     completer=lambda: ['on', 'off'])
   
   cli_parser.RegisterCommand(
-    'vi', f'{indent}Opens buffer in vi editor.', min_args=1, 
+    'vi', f'{I}Opens buffer in vi editor.', min_args=1, 
     handler=command_object._CmdEditor)
 
 def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:

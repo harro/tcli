@@ -256,7 +256,7 @@ class TCLI(object):
 
     tcli_obj.cli_parser = command_parser.CommandParser()
     # Only register base class commands, not the inventory.
-    tcli_obj.RegisterCommands(tcli_obj.cli_parser)
+    command_register.RegisterCommands(tcli_obj, tcli_obj.cli_parser)
     # Only support commands that are valid when called inline.
     tcli_obj.cli_parser.InlineOnly()
 
@@ -360,10 +360,6 @@ class TCLI(object):
               msgtype='warning')
           raise EOFError()
 
-  def RegisterCommands(self, cli_parser:command_parser.CommandParser) -> None:
-    """Register commands supported by TCLI core functions."""
-    command_register.RegisterCommands(self, cli_parser, I)
-
   def StartUp(self, commands, interactive) -> None:
     """Runs rc file commands and initial startup tasks.
 
@@ -390,7 +386,7 @@ class TCLI(object):
       self.interactive = True
     if not self.inventory:
       self._InitInventory()
-    self.RegisterCommands(self.cli_parser)
+    command_register.RegisterCommands(self, self.cli_parser)
     if self.inventory:
       self._SetFiltersFromDefaults(self.inventory)
     # Set some markup flags early.

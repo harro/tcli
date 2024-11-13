@@ -160,7 +160,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     self.tcli_obj._Print = mock.Mock()
 
-    self.tcli_obj.RegisterCommands(self.tcli_obj.cli_parser)
+    command_register.RegisterCommands(self.tcli_obj, self.tcli_obj.cli_parser)
     self.tcli_obj.cli_parser.RegisterCommand(
         'somecommand', 'somecommand help', append=True, regexp=True,
         handler=lambda command, args, append: (command, args, append))
