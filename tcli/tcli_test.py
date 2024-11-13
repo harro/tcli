@@ -22,6 +22,7 @@ import os
 from absl import flags
 import unittest
 from unittest import mock
+from tcli import command_register
 from tcli import inventory_base as inventory
 from tcli import tcli_lib as tcli
 from tcli.tcli_textfsm import clitable
@@ -202,7 +203,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.color = not tcli.FLAGS.color
     self.tcli_obj.timeout = 30
 
-    self.tcli_obj.SetDefaults()
+    command_register.SetFlagDefaults(self.tcli_obj.cli_parser)
     self.assertEqual(tcli.FLAGS.color, self.tcli_obj.color)
     self.assertEqual(tcli.FLAGS.timeout, self.tcli_obj.timeout)
 
@@ -219,17 +220,13 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(self.tcli_obj, 'ParseCommands'):
       with mock.patch.object(self.tcli_obj, '_InitInventory'):
-        with mock.patch.object(self.tcli_obj, 'SetDefaults') as mock_parse:
-          self.tcli_obj.StartUp(None, False)
-          # Without target or cmds, interactive is set to True.
-          self.assertTrue(self.tcli_obj.interactive)
-          mock_parse.assert_has_calls([mock.call(), mock.call()])
+        self.tcli_obj.StartUp(None, False)
+        # Without target or cmds, interactive is set to True.
+        self.assertTrue(self.tcli_obj.interactive)
 
-        with mock.patch.object(self.tcli_obj, 'SetDefaults') as mock_parse:
-          self.tcli_obj.StartUp('bogus', False)
-          # Without target or cmds, interactive is set to True.
-          self.assertFalse(self.tcli_obj.interactive)
-          mock_parse.assert_called_once_with()
+        self.tcli_obj.StartUp('bogus', False)
+        # With target or cmds, interactive is set by StartUp.
+        self.assertFalse(self.tcli_obj.interactive)
 
   def testTildeCompleter(self):
 
@@ -1067,39 +1064,6 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual(10, self.tcli_obj.timeout)
     self.tcli_obj.TildeCmd('timeout -15')
     self.assertEqual(10, self.tcli_obj.timeout)
-
-  def testCmdDefaults(self):
-    """Tests setting commands back to default."""
-
-    self.tcli_obj.color_scheme = 'cstring'
-    self.tcli_obj.display = 'dstring'
-    self.tcli_obj.mode = 'estring'
-
-    # Sanity check defaults.
-    assert (
-        not tcli.FLAGS.interactive and
-        tcli.FLAGS.cmds is None and
-        tcli.FLAGS.display == 'raw' and
-        tcli.FLAGS.filter is None)
-
-    # Check that reseting 'display', resets this (and only this) variable.
-    self.tcli_obj._CmdDefaults('defaults', ['display'])
-    self.assertEqual('estring', self.tcli_obj.mode)
-
-    self.tcli_obj.display = 'dstring'
-    # Check that reseting 'mode', resets this (and only this) variable.
-    self.tcli_obj._CmdDefaults('defaults', ['mode'])
-    self.assertEqual('cli', self.tcli_obj.mode)
-    self.assertEqual('dstring', self.tcli_obj.display)
-
-    self.tcli_obj.mode = 'estring'
-    # Reset all values.
-    self.tcli_obj._CmdDefaults('defaults', ['all'])
-    self.assertEqual(tcli.FLAGS.display, self.tcli_obj.display)
-    self.assertEqual(tcli.FLAGS.mode, self.tcli_obj.mode)
-    # Raise exception for invalid value.
-    self.assertRaises(
-        ValueError, self.tcli_obj._CmdDefaults, 'defaults', ['allall'])
 
   def testTildeBufferPlay(self):
     """Tests that buffer contents 'plays' out as commands."""

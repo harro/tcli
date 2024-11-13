@@ -360,11 +360,11 @@ class TCLI(object):
               msgtype='warning')
           raise EOFError()
 
-  def RegisterCommands(self, cli_parser:command_parser.CommandParser) ->None:
+  def RegisterCommands(self, cli_parser:command_parser.CommandParser) -> None:
     """Register commands supported by TCLI core functions."""
     command_register.RegisterCommands(self, cli_parser, I)
 
-  def StartUp(self, commands, interactive) ->None:
+  def StartUp(self, commands, interactive) -> None:
     """Runs rc file commands and initial startup tasks.
 
       The RC file may contain any valid TCLI commands including commands to send
@@ -394,30 +394,18 @@ class TCLI(object):
     if self.inventory:
       self._SetFiltersFromDefaults(self.inventory)
     # Set some markup flags early.
-    self.SetDefaults()
+    # We bracket the RC file and apply/reapply the default settings from Flags.
+    command_register.SetFlagDefaults(self.cli_parser)
     if self.interactive:
       # Set safe mode.
       self.cli_parser.ExecHandler('safemode', ['on'], False)
       # Apply user settings.
       self._ParseRCFile()
       # Reapply flag values that may have changed by RC commands.
-      self.SetDefaults()
+      #TODO(harro): Precedence problem: Flags values should not be overriden.
+      command_register.SetFlagDefaults(self.cli_parser)
     if commands:
       self.ParseCommands(commands)
-
-  def SetDefaults(self) ->None:
-    """Parses command line flags ad sets default attributes.
-
-      Commands here affect data representation/presentation but are otherwise
-      harmless. Excuted both before and after any commands that may exist in a
-      config file so that RC executed commands get the benefits without being
-      able to override explicit flags.
-    """
-
-    # Calling the handlers directly will not be logged.
-    for command_name in ('color', 'color_scheme', 'display', 'filter',
-                         'linewrap', 'mode', 'timeout'):
-      self.cli_parser.ExecWithDefault(command_name)
 
   # pylint: disable=unused-argument
   def Completer(self, word:str, state:int) -> str|None:

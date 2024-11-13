@@ -21,10 +21,6 @@ flags.DEFINE_enum(
   'color_scheme', 'light', COLOR_SCHEMES,
   f"{I}Use 'light' scheme on dark background or 'dark' otherwise.")
 
-flags.DEFINE_boolean(
-  'linewrap', False,
-  f'{I}Override default line wrap behavior.')
-
 flags.DEFINE_enum(
   'display', 'raw', DISPLAY_FORMATS,
   f'{I}Extensible set of routines used for formatting command output.'
@@ -32,17 +28,21 @@ flags.DEFINE_enum(
   f"{I}Shortname: 'D'.", short_name='D')
 
 flags.DEFINE_enum(
+  'filter', 'default_index', ['default_index', ''],
+  f'{I}File name that maps templates for extracting data from output.'
+  f"{I}Is disabled if display is in 'raw' mode."
+  f"{I}Shortname: 'F'.", short_name='F')
+
+flags.DEFINE_boolean(
+  'linewrap', False,
+  f'{I}Override default line wrap behavior.')
+
+flags.DEFINE_enum(
   'mode', 'cli', MODE_FORMATS, 
   f'{I}Extensible set of routines used for formatting command output.'
   f'{I}Available display formats are: {DISPLAY_FORMATS}'
   f"{I}Shortname: 'D'.",
   short_name='M')
-
-flags.DEFINE_enum(
-  'filter', 'default_index', ['default_index', ''],
-  f'{I}File name that maps templates for extracting data from output.'
-  f"{I}Is disabled if display is in 'raw' mode."
-  f"{I}Shortname: 'F'.", short_name='F')
 
 flags.DEFINE_integer(
   'timeout', 45,
@@ -242,3 +242,15 @@ def RegisterCommands(
   cli_parser.RegisterCommand(
     'vi', f'{indent}Opens buffer in vi editor.', min_args=1, 
     handler=command_object._CmdEditor)
+
+def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:
+  """Parses command line flags ad sets default attributes.
+
+    Commands here affect data representation/presentation but are otherwise
+    harmless.
+  """
+
+  # Calling the handlers directly will not be logged.
+  for command_name in ('color', 'color_scheme', 'display', 'filter',
+                        'linewrap', 'mode', 'timeout'):
+    cli_parser.ExecWithDefault(command_name)
