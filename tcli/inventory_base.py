@@ -35,44 +35,10 @@ from tcli.command_parser import APPEND
 
 # Global vars so flags.FLAGS has inventroy intelligence in the main program.
 
-TILDE_COMMAND_HELP = {
-    'attributes': f"""
-    Filter targets based on an attribute of the device. First argument is
-    attribute name, the second is the value. If a attribute value is prefixed
-    with a '^' then it is treated as a regexp and implicitly ends with '.*$'.
-    If command is appended with {APPEND} then adds to current attribute value.
-    A value of '^' resets the attribute filter to 'none'.
-    Shortname: 'A'.""",
-
-    'targets': f"""
-    Set target devices to receive commands (hostnames or IP addresses,
-    comma separated, no spaces). If a target is prefixed with a '^' then it is
-    treated as a regexp and implicitly ends with '.*$'. Regexp target list is
-    expanded against devices. If command is appended with {APPEND} then adds to
-    current targets value."
-    A target of '^' resets the list to 'none'.
-    Shortname: 'T'.""",
-
-    'maxtargets': f"""
-    High water mark to prevent accidentally making changes to large numbers of
-    targets. A value of 0, removes the restriction.""",
-
-    'xattributes': f"""
-    Omit targets that have the attribute of the same name as the first
-    argument that matches a string or regexp from second argument.
-    If command is appended with {APPEND} then adds to current xattributes value.
-    Shortname: 'E'.""",
-
-    'xtargets': f"""
-    Omit targets that match a string or regexp from this list.
-    If command is appended with {APPEND} then adds to current xtargets value.
-    Shortname: 'X'.""",
-}
-
 # Maximum number of devices that can be the recipient of a command.
 # Can (and should) be overriden in the child module or the command line.
 DEFAULT_MAXTARGETS = 50
-# System default for what device targets to exclude form matching.
+# System default for what device targets to exclude from matching.
 # Set this to avoid overly matching on devices that may rarely be an
 # intentional target of commands (but you still want to be able to send
 # commands to them as the exception rather than the rule).
@@ -90,18 +56,25 @@ CmdResponse = collections.namedtuple(
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer(
-    'maxtargets', DEFAULT_MAXTARGETS,
-    TILDE_COMMAND_HELP['maxtargets'])
+    'maxtargets', DEFAULT_MAXTARGETS, """
+    High water mark to prevent accidentally making changes to large numbers of
+    targets. A value of 0, removes the restriction.""")
 
 flags.DEFINE_string(
-    'targets', '',
-    TILDE_COMMAND_HELP['targets'],
-    short_name='T')
+    'targets', '', f"""
+    Set target devices to receive commands (hostnames or IP addresses,
+    comma separated, no spaces). If a target is prefixed with a '^' then it is
+    treated as a regexp and implicitly ends with '.*$'. Regexp target list is
+    expanded against devices. If command is appended with {APPEND} then adds to
+    current targets value."
+    A target of '^' resets the list to 'none'.
+    Shortname: 'T'.""", short_name='T')
 
 flags.DEFINE_string(
-    'xtargets', DEFAULT_XTARGETS,
-    TILDE_COMMAND_HELP['xtargets'],
-    short_name='X')
+    'xtargets', DEFAULT_XTARGETS, f"""
+    Omit targets that match a string or regexp from this list.
+    If command is appended with {APPEND} then adds to current xtargets value.
+    Shortname: 'X'.""", short_name='X')
 
 
 class Error(Exception):
@@ -281,30 +254,36 @@ class Inventory(object):
     """Add module specific command support to TCLI."""
 
     # Register commands common to any inventory source.
-    cmd_register.RegisterCommand('attributes', TILDE_COMMAND_HELP['attributes'],
-                                 max_args=2, append=True, regexp=True,
-                                 inline=True, short_name='A',
-                                 handler=self._AttributeFilter,
-                                 # TODO(harro): Change completer.
-                                 completer=self._CmdFilterCompleter)
-    cmd_register.RegisterCommand('targets', TILDE_COMMAND_HELP['targets'],
+    cmd_register.RegisterCommand('targets', FLAGS['targets'].help,
                                  append=True, regexp=True, inline=True,
                                  short_name='T', default_value=FLAGS.targets,
                                  handler=self._CmdFilter)
-    cmd_register.RegisterCommand('maxtargets', TILDE_COMMAND_HELP['maxtargets'],
-                                 default_value=FLAGS.maxtargets,
-                                 handler=self._CmdMaxTargets)
-    cmd_register.RegisterCommand('xattributes',
-                                 TILDE_COMMAND_HELP['xattributes'],
-                                 max_args=2, append=True, regexp=True,
-                                 inline=True, short_name='E',
-                                 handler=self._AttributeFilter,
-                                 # TODO(harro): Change completer.
-                                 completer=self._CmdFilterCompleter)
-    cmd_register.RegisterCommand('xtargets', TILDE_COMMAND_HELP['xtargets'],
+    cmd_register.RegisterCommand('xtargets', FLAGS['xtargets'].help,
                                  append=True, regexp=True, inline=True,
                                  short_name='X', default_value=FLAGS.xtargets,
                                  handler=self._CmdFilter)
+    cmd_register.RegisterCommand('maxtargets', FLAGS['maxtargets'].help,
+                                 default_value=FLAGS.maxtargets,
+                                 handler=self._CmdMaxTargets)
+    
+    cmd_register.RegisterCommand('attributes', f"""
+    Filter targets based on an attribute of the device. First argument is
+    attribute name, the second is the value. If a attribute value is prefixed
+    with a '^' then it is treated as a regexp and implicitly ends with '.*$'.
+    If command is appended with {APPEND} then adds to current attribute value.
+    A value of '^' resets the attribute filter to 'none'.
+    Shortname: 'A'.""", short_name='A',
+      max_args=2, append=True, regexp=True, inline=True, 
+      handler=self._AttributeFilter, completer=self._CmdFilterCompleter)
+
+    cmd_register.RegisterCommand(
+      'xattributes', f"""
+    Omit targets that have the attribute of the same name as the first
+    argument that matches a string or regexp from second argument.
+    If command is appended with {APPEND} then adds to current xattributes value.
+    Shortname: 'E'.""", short_name='E',
+      max_args=2, append=True, regexp=True, inline=True, 
+      handler=self._AttributeFilter, completer=self._CmdFilterCompleter)
 
     # Register commands specific to this inventory source.
     for attribute in DEVICE_ATTRIBUTES.values():
@@ -317,6 +296,19 @@ class Inventory(object):
                                    default_value=default_value,
                                    append=True, inline=True, regexp=True,
                                    handler=self._CmdFilter)
+      cmd_register.RegisterCommand('x' + attribute.name,
+                                   attribute.help_str, default_value='',
+                                   append=True, inline=True, regexp=True,
+                                   handler=self._CmdFilter)
+
+  def SetFiltersFromDefaults(self, cmd_register) -> None:
+    """Set/Reset filters to default values."""
+
+    for attr in self.inclusions:
+      cmd_register.ExecWithDefault(attr)
+  
+    for attribute in self.exclusions:
+      cmd_register.ExecWithDefault(attr)
 
   def SendRequests(self, requests_callbacks, deadline:int|None=None):
     """Submits command requests to device manager.
@@ -454,7 +446,6 @@ class Inventory(object):
 
     filter_string = args[0]   # TODO(harro): Raise exception is args >1 ?
     if filter_string in ('^', '^$'):
-      del(self._filters[command_name])
       filters[command_name] = ''
       # Clear device list to trigger re-application of filter.
       self._device_list = None

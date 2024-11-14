@@ -286,23 +286,6 @@ class TCLI(object):
     """Display message of the day."""
     self._Print(MOTD, msgtype='system')
 
-  def _SetFiltersFromDefaults(
-      self, inv:inventory.Inventory) -> None:
-    """Trawls filters and sets the matching commands via the cli_parser."""
-
-    # Commands that may be specified in flags.
-    for filter_name in inv.inclusions:
-      try:
-        self.cli_parser.ExecWithDefault(filter_name)
-      except ValueError:
-        pass
-  
-    for filter_name in inv.exclusions:
-      try:
-        self.cli_parser.ExecWithDefault(filter_name)
-      except ValueError:
-        pass
-
   def _SetPrompt(self, inv: inventory.Inventory) -> None:
     """Sets the prompt string with current targets."""
 
@@ -388,7 +371,7 @@ class TCLI(object):
       self._InitInventory()
     command_register.RegisterCommands(self, self.cli_parser)
     if self.inventory:
-      self._SetFiltersFromDefaults(self.inventory)
+      self.inventory.SetFiltersFromDefaults(self.cli_parser)
     # Set some markup flags early.
     # We bracket the RC file and apply/reapply the default settings from Flags.
     command_register.SetFlagDefaults(self.cli_parser)
@@ -954,7 +937,7 @@ class TCLI(object):
       # Reapply explicit flags.
       command_register.SetFlagDefaults(self.cli_parser)
       if self.inventory:
-        self._SetFiltersFromDefaults(self.inventory)
+        self.inventory.SetFiltersFromDefaults(self.cli_parser)
       return
   
     try:
