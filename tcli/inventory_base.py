@@ -31,7 +31,7 @@ import threading
 import typing
 from absl import flags
 from absl import logging
-from tcli.command_parser import APPEND
+from tcli.command_parser import APPEND, CommandParser
 
 # Global vars so flags.FLAGS has inventroy intelligence in the main program.
 
@@ -98,23 +98,50 @@ class Attribute(object):
   #TODO(harro): Use getters / setters here an hide internals.
   def __init__(
       self, name: str, default_value: str, valid_values: list[str] | None,
-      help_str: str, display_case: Case='lower', command_flag: bool=False):
+      help_str: str, display_case: Case='lower'):
     self._default = default_value
     self.help_str = help_str
     self.name = name
     self.valid_values = valid_values
     self.display_case = display_case
-    self.command_flag = command_flag
-    if self.command_flag:
-      flags.DEFINE_string(self.name, default_value, help_str)
 
-  def _GetDefault(self):
-    if self.command_flag and hasattr(flags, self.name):
-      return getattr(flags, self.name)
-    else:
-      return self._default
+  @property
+  def default_value(self) -> str:
+    return self._default
 
-  default_value = property(_GetDefault)
+
+class CmdRequest(object):
+  """Request object to be sent to the external device accessor service.
+
+  The command request object created should satisfy the format required
+  by the device manager that retrieves the command results.
+
+  Each request object must be assigned a unique 'uid' attribute - unique
+  within the context of all pending requests, and all requests that have not
+  yet been rendered to the user. The device manager may generate this ID,
+  otherwise we add it here. We have no way of determining if a result has
+  been displayed (and the uid freed) so a monotomically increasing 32bit
+  number would suffice.
+
+  Some devices support multiple commandline modes or CLI interpretors
+  e.g. router CLI and sub-system unix cli.
+
+  Args:
+    target: device to send command to.
+    command: string single commandline to send to each device.
+    mode: commandline mode on device to submit the command to.
+  Returns:
+    List of request objects.
+  """
+
+  UID = 0    # Each request has an identifier
+
+  def __init__(self, target:str, command:str, mode:str='cli') -> None:
+    CmdRequest.UID += 1
+    self.uid = CmdRequest.UID
+    self.target = target
+    self.command = bytes(command, 'utf-8').decode('unicode_escape')
+    self.mode = mode
 
 
 class Inventory(object):
@@ -129,39 +156,6 @@ class Inventory(object):
     source: String identifier of source of device inventory.
   """
   SOURCE = 'unknown'
-
-  class CmdRequest(object):
-    """Request object to be sent to the external device accessor service.
-
-    The command request object created should satisfy the format required
-    by the device manager that retrieves the command results.
-
-    Each request object must be assigned a unique 'uid' attribute - unique
-    within the context of all pending requests, and all requests that have not
-    yet been rendered to the user. The device manager may generate this ID,
-    otherwise we add it here. We have no way of determining if a result has
-    been displayed (and the uid freed) so a monotomically increasing 32bit
-    number would suffice.
-
-    Some devices support multiple commandline modes or CLI interpretors
-    e.g. router CLI and sub-system unix cli.
-
-    Args:
-      target: device to send command to.
-      command: string single commandline to send to each device.
-      mode: commandline mode on device to submit the command to.
-    Returns:
-      List of request objects.
-    """
-
-    UID = 0    # Each request has an identifier
-
-    def __init__(self, target: str, command: str, mode: str='cli') -> None:
-      Inventory.CmdRequest.UID += 1
-      self.uid = Inventory.CmdRequest.UID
-      self.target = target
-      self.command = bytes(command, 'utf-8').decode('unicode_escape')
-      self.mode = mode
 
   def __init__(self):
     """Initialise thread safe access to data to support async calls."""
@@ -250,7 +244,7 @@ class Inventory(object):
                                             daemon=True)
     self._devices_thread.start()
 
-  def RegisterCommands(self, cmd_register) -> None:
+  def RegisterCommands(self, cmd_register:CommandParser) -> None:
     """Add module specific command support to TCLI."""
 
     # Register commands common to any inventory source.
@@ -287,7 +281,7 @@ class Inventory(object):
 
     # Register commands specific to this inventory source.
     for attribute in DEVICE_ATTRIBUTES.values():
-      if attribute.command_flag and attribute.name in FLAGS:
+      if attribute.name in FLAGS:
         default_value = getattr(FLAGS, attribute.name)
       else:
         default_value = attribute.default_value
@@ -301,7 +295,7 @@ class Inventory(object):
                                    append=True, inline=True, regexp=True,
                                    handler=self._CmdFilter)
 
-  def SetFiltersFromDefaults(self, cmd_register) -> None:
+  def SetFiltersFromDefaults(self, cmd_register:CommandParser) -> None:
     """Set/Reset filters to default values."""
 
     for attr in self.inclusions:
@@ -310,7 +304,9 @@ class Inventory(object):
     for attribute in self.exclusions:
       cmd_register.ExecWithDefault(attr)
 
-  def SendRequests(self, requests_callbacks, deadline:int|None=None):
+  def SendRequests(
+      self, requests_callbacks:list[tuple[CmdRequest, typing.Callable]],
+      deadline:float|None=None) -> None:
     """Submits command requests to device manager.
 
     Submit the command requests to the device manager for resolution.
@@ -328,7 +324,7 @@ class Inventory(object):
     Returns:
       None
     """
-    return self._SendRequests(requests_callbacks, deadline=deadline)
+    raise NotImplementedError
 
   def ShowEnv(self) -> str:
     """Show inventory attribute filter settings."""
@@ -378,7 +374,7 @@ class Inventory(object):
       return None
 
   def _AttributeFilter(
-      self, command_name: str, args: list[str], append:bool=False) -> str:
+      self, command_name:str, args:list[str], append:bool=False) -> str:
     """Updates or displays the inventory inclusions or exclusions (filters).
 
     Args:
@@ -414,7 +410,7 @@ class Inventory(object):
     return ''
   
   def _CmdFilter(
-      self, command_name: str, args: list[str], append:bool=False) -> str:
+      self, command_name:str, args:list[str], append:bool=False) -> str:
     """Updates or displays target device inventory filter.
 
     Args:
@@ -467,7 +463,7 @@ class Inventory(object):
     return ''
 
   def _CmdMaxTargets(
-    self, command_name: str, args: list[str], append=False) -> str:
+    self, command_name:str, args:list[str], append=False) -> str:
     """Updates or displays maxtargets filter.
 
     Args:
@@ -645,17 +641,10 @@ class Inventory(object):
   def _FetchDevices(self) -> None|NotImplementedError:
     """Fetches Devices from external store ."""
     raise NotImplementedError
-
-  def _SendRequests(
-      self, requests_callbacks:tuple, deadline:float|None=None
-      ) -> None|NotImplementedError:
-    """Submit command requests to device manager."""
-    raise NotImplementedError
-
 class FilterMatch(object):
   """Object for filter string decomposition and matching against values."""
 
-  def __init__(self, filter_string: str, ignorecase: bool=True) -> None:
+  def __init__(self, filter_string:str, ignorecase:bool=True) -> None:
     # Literal strings and compiled regexps keyed on attribute name.
     self._Set(filter_string, ignorecase)
 
@@ -663,7 +652,7 @@ class FilterMatch(object):
   def filters(self) -> tuple:
     return (self._literals, self._compiled)
 
-  def _Set(self, filter_string: str, ignore_case: bool) -> None:
+  def _Set(self, filter_string:str, ignore_case:bool) -> None:
     """Assigns values to filters.
 
     Store the literal values and compiled regular expressions in their
@@ -678,7 +667,7 @@ class FilterMatch(object):
       filter_string, ignore_case)
 
   def _DecomposeString(
-      self, filter_string: str, ignore_case: bool) -> tuple:
+      self, filter_string:str, ignore_case:bool) -> tuple:
     """Returns a tuple of lists of compiled and literal strings for matching.
 
     Args:
@@ -719,7 +708,7 @@ class FilterMatch(object):
 
     return (literal_substrs, re_substrs)
 
-  def Match(self, value: str | list[str] | list[list[str]]) -> bool:
+  def Match(self, value:str|list[str]|list[list[str]]) -> bool:
     """Returns if a value matches the filter."""
 
     # If we have a list of attributes, recurse down to find match.
