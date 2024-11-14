@@ -197,6 +197,7 @@ def RegisterCommands(
     'recordall', f"""
     Record commands and escape commands to named <buffer>.
     If command is appended with {command_parser.APPEND} then append to buffer.""",
+
     append=True, inline=True, handler=command_object._CmdLogging)
   
   cli_parser.RegisterCommand(
