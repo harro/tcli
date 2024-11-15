@@ -391,10 +391,17 @@ class CommandParser(dict):
         # Split the unquoted part further, by pipes if present.
         token_sublist = re.findall(f'{pipes}|{not_pipes}', unquoted_str)
         for sub_index in range(len(token_sublist)):
+<<<<<<< HEAD
           # Flatten nested list split on pipes.
           new_token_list.extend([x for x in token_sublist[sub_index] if x])
       else:
         # Flatten nested list split on quoted blocks.
+=======
+          # Flatten nested list caused by splitting on pipes.
+          new_token_list.extend([x for x in token_sublist[sub_index] if x])
+      else:
+        # Flatten nested list caused by splitting on quoted blocks.
+>>>>>>> 6c24d0b3de95d17213b1ab3c22c21336f4cd56c9
         new_token_list.extend([x for x in token_list[index] if x])
 
     dbl_pipe = '||'
