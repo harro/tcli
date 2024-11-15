@@ -362,6 +362,9 @@ class CommandParser(dict):
       'cat alpha | grep abc || grep xyz || grep -v "||"'
     Into:
       ('cat alpha | grep abc', 'grep xyz | grep -v "||"')
+    Where the string is split by the first double pipe and the remaining
+    ones are converted to single pipes.
+    Note a valid double pipe cannot have single pipes to its right.
 
     Args:
       command: str, command string to split.
@@ -371,45 +374,46 @@ class CommandParser(dict):
       and the second value is the local pipe with '||' replaced with '|'.
     """
 
-    # Trivial case, there is no pipes.
-    if '||' not in command:
-      return (command, '')
+    # Split out quoted and non-quoted text.
+    unquoted_str = """([^"']+)"""
+    sgl_quoted_str = """('[^']*')"""
+    dbl_quoted_str = '''("[^"]*")'''
+    token_list = re.findall(
+      f'{unquoted_str}|{dbl_quoted_str}|{sgl_quoted_str}', command)
 
-    found_single_pipe = False
-    dbl_pipe_str = ''
-    cmd_str = ''
-    # Split out quoted and non-quoted text and work through from the right.
-    #TODO(harro): Could be more legible. And does this handle nested quotes?
-    for cmd_elem in reversed(
-        re.findall("""([^"']+)|("[^"]*")|('[^']*')""", command)):
-      (nonquoted, _, _) = cmd_elem
-      if nonquoted and not found_single_pipe:
-        # At this point we have non-quoted text that may have '|' or '||' in it.
-        # Convert something like:
-        #   '0 || 1 | 2 || 3 |||'
-        # Into:
-        #   ('0 || 1 | 2', '| 3 |||')
-
-        tmp_str = ''
-        # Split out pipe commands and work through from right.
-        for pipe_elem in reversed(re.findall(r'([^|]+)|(\|+)', nonquoted)):
-          (pipe_text, pipe_cmd) = pipe_elem
-          if not pipe_cmd:
-            tmp_str = pipe_text + tmp_str
-            continue
-
-          if pipe_cmd == '||' and not found_single_pipe:
-            dbl_pipe_str = '|' + tmp_str + cmd_str + dbl_pipe_str
-            cmd_str = ''
-            tmp_str = ''
-          else:
-            if pipe_cmd == '|':
-              # No more double pipe elements.
-              found_single_pipe = True
-            tmp_str = pipe_cmd + tmp_str
-
-        cmd_str = tmp_str + cmd_str
+    pipes = '([|]+)'
+    not_pipes = '([^|]+)'
+    new_token_list = []
+    # Further decompose the unquoted parts of the string.
+    for index in range(len(token_list)):
+      (unquoted_str, _, _) = token_list[index]
+      if unquoted_str:
+        # Split the unquoted part further, by pipes if present.
+        token_sublist = re.findall(f'{pipes}|{not_pipes}', unquoted_str)
+        for sub_index in range(len(token_sublist)):
+          # Flatten nested list split on pipes.
+          new_token_list.extend([x for x in token_sublist[sub_index] if x])
       else:
-        cmd_str = ''.join(cmd_elem) + cmd_str
+        # Flatten nested list split on quoted blocks.
+        new_token_list.extend([x for x in token_list[index] if x])
 
-    return (cmd_str.rstrip(), dbl_pipe_str.strip())
+    dbl_pipe = '||'
+    sgl_pipe = '|'
+    lhs_str = ''
+    while sgl_pipe in new_token_list:
+      pipe_index = new_token_list.index(sgl_pipe)
+      lhs_str += ''.join(new_token_list[:pipe_index +1])
+      new_token_list = new_token_list[pipe_index +1:]
+
+    if dbl_pipe in new_token_list:
+      pipe_index = new_token_list.index(dbl_pipe)
+      lhs_str += ''.join(new_token_list[:pipe_index])
+      # Remove 1st instance of double pipe.
+      new_token_list = new_token_list[pipe_index +1:]
+      # Replace all subsequent instances with a single pipe.
+      new_token_list = [x if x != dbl_pipe else sgl_pipe for x in new_token_list ]
+    else:
+      lhs_str += ''.join(new_token_list)
+      new_token_list = []
+
+    return (lhs_str.strip(), ''.join(new_token_list).strip())

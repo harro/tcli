@@ -239,25 +239,34 @@ class CommandParserTest(unittest.TestCase):
   def testExtractPipe(self) -> None:
       """Tests parsing of command pipes."""
 
+      # A double quited string.
+      cmd = 'cat "alpha"'
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd), ('cat "alpha"', ''))
+
+      # A single pipe.
+      cmd = 'cat alpha | grep abc'
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd),
+                       ('cat alpha | grep abc', ''))
+
+      # A single double pipe.
+      cmd = 'cat alpha || grep abc'
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd),
+                       ('cat alpha', 'grep abc'))
+
+      # A multiple double pipes.
       cmd = 'cat alpha | grep abc || grep xyz || grep -v "||"'
-      self.assertEqual(
-          ('cat alpha | grep abc', '| grep xyz | grep -v "||"'),
-          self.cmd_parser.ExtractPipe(cmd))
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd),
+                       ('cat alpha | grep abc', 'grep xyz | grep -v "||"'))
 
+      # Skip qoted double pipe.
       cmd = "cat alpha '||' || grep xyz || grep -v .   "
-      self.assertEqual(
-          ("cat alpha '||'", '| grep xyz | grep -v .'),
-          self.cmd_parser.ExtractPipe(cmd))
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd),
+                       ("cat alpha '||'", 'grep xyz | grep -v .'))
 
-      cmd = 'cat alpha   || grep xyz || grep -v "||"'
-      self.assertEqual(
-          ('cat alpha', '| grep xyz | grep -v "||"'),
-          self.cmd_parser.ExtractPipe(cmd))
-
-      cmd = "cat alpha | grep '||'"
-      self.assertEqual(
-          ("cat alpha | grep '||'", ''),
-          self.cmd_parser.ExtractPipe(cmd))
+      # Double pipe rejected because a single pipe is to its right.
+      cmd = 'cat alpha || grep xyz | grep -v "||" || echo'
+      self.assertEqual(self.cmd_parser.ExtractPipe(cmd),
+                       ('cat alpha || grep xyz | grep -v "||"', 'echo'))
 
 if __name__ == '__main__':
   unittest.main()
