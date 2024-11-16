@@ -31,16 +31,14 @@ class CommandParserTest(unittest.TestCase):
     self.cmd_parser.RegisterCommand(
         'command', 'A help string.', short_name='C')
 
-    self.assertEqual(('command', 'acommand', False),
-                     self.cmd_parser._CommandExpand('Cacommand'))
-    self.assertEqual(('command', 'acommand', False),
-                     self.cmd_parser._CommandExpand('C acommand'))
-    self.assertEqual((None, 'ganoncommand', False),
-                     self.cmd_parser._CommandExpand('ganoncommand'))
-    self.assertEqual(('command', '', False),
-                     self.cmd_parser._CommandExpand('C'))
-    self.assertEqual((None, '', False),
-                     self.cmd_parser._CommandExpand(''))
+    self.assertEqual(self.cmd_parser._CommandExpand('Cacommand'),
+                     ('command', 'acommand', False))
+    self.assertEqual(self.cmd_parser._CommandExpand('C acommand'),
+                     ('command', 'acommand', False))
+    self.assertEqual(self.cmd_parser._CommandExpand('ganoncommand'),
+                     ('ganoncommand', '', False))
+    self.assertEqual(self.cmd_parser._CommandExpand('C'),
+                     ('command', '', False))
 
   def testGetDefault(self):
     """Tests retrieving default values."""
@@ -85,77 +83,71 @@ class CommandParserTest(unittest.TestCase):
   def testParseCommandLine1(self):
     """Tests parsing a command with default arguments."""
 
+    # Vanilla command without appending, inline, regexp or toggle support.
     self.cmd_parser.RegisterCommand(
         'boo', 'A help string.', short_name='B', min_args=0,
         max_args=2, default_value=None, append=False,
         inline=False, raw_arg=False, regexp=False, toggle=False)
 
-    self.assertEqual(
-        ('boo', [], False),
-        self.cmd_parser.ParseCommandLine('boo'))
-    self.assertEqual(
-        ('boo', ['hoo'], False),
-        self.cmd_parser.ParseCommandLine('boo hoo'))
-    self.assertEqual(
-        ('boo', ['hello', 'world'], False),
-        self.cmd_parser.ParseCommandLine('boo hello world'))
-    self.assertEqual(
-        ('boo', ['hello', 'world'], False),
-        self.cmd_parser.ParseCommandLine('Bhello world'))
+    # Arguments are gathered into a list.
+    self.assertEqual(self.cmd_parser.ParseCommandLine('boo'),
+        ('boo', [], False))
+    self.assertEqual(self.cmd_parser.ParseCommandLine('boo hoo'),
+        ('boo', ['hoo'], False))
+    self.assertEqual(self.cmd_parser.ParseCommandLine('boo hello world'),
+        ('boo', ['hello', 'world'], False))
+    # Shortname is expanded.
+    self.assertEqual(self.cmd_parser.ParseCommandLine('Bhello world'),
+        ('boo', ['hello', 'world'], False))
 
+    # Missing command disallowed.
+    self.assertRaises(command_parser.ParseError,
+                      self.cmd_parser.ParseCommandLine, '')
     # Append disallowed.
     self.assertRaises(command_parser.ParseError,
                       self.cmd_parser.ParseCommandLine, 'boo+ hoo')
     # Regexp disallowed.
     self.assertRaises(command_parser.ParseError,
                       self.cmd_parser.ParseCommandLine, 'boo ^.*')
-    # b/3173498 invalid \ escape terminated string.
+    # Invalid \ escape terminated string.
     self.assertRaises(command_parser.ParseError,
                       self.cmd_parser.ParseCommandLine, 'boo slash ending\\')
 
-  def testParseCommandLine2(self):
-    """Tests parsing a with non default arguments."""
-
+    # Command that supports append and regexp.
     self.cmd_parser.RegisterCommand(
-        'boo', 'A help string.', short_name='B', min_args=1,
+        'hoo', 'A help string.', short_name='H', min_args=1,
         max_args=2, default_value='on', append=True,
         inline=False, raw_arg=False, regexp=True, toggle=False)
 
     # Quoted text is OK.
-    self.assertEqual(
-        ('boo', ['A quoted long line'], False),
-        self.cmd_parser.ParseCommandLine('boo "A quoted long line"'))
-    # Regexps are marked OK as is append.
-    self.assertEqual(
-        ('boo', ['^.* ?'], True),
-        self.cmd_parser.ParseCommandLine('boo+ "^.* ?"'))
+    self.assertEqual(self.cmd_parser.ParseCommandLine('hoo "A quoted line"'),
+        ('hoo', ['A quoted line'], False))
+    # Regexps are marked OK, quoted blocks are ok, as is append.
+    self.assertEqual(self.cmd_parser.ParseCommandLine('hoo+ "^.* ?"'),
+                     ('hoo', ['^.* ?'], True))
     # Append still works when things are short and cramped.
-    self.assertEqual(
-        ('boo', ['hello', 'world'], True),
-        self.cmd_parser.ParseCommandLine('B+hello world'))
+    self.assertEqual(self.cmd_parser.ParseCommandLine('H+hello world'),
+                     ('hoo', ['hello', 'world'], True))
 
     # Minimum arguments triggers exception.
-    self.assertRaises(command_parser.ParseError,
-                      self.cmd_parser.ParseCommandLine, 'boo')
+    self.assertRaises(
+      command_parser.ParseError, self.cmd_parser.ParseCommandLine, 'hoo')
     # As does the maximum.
-    self.assertRaises(command_parser.ParseError,
-                      self.cmd_parser.ParseCommandLine,
-                      'boo hoo the line is too long')
+    self.assertRaises(
+      command_parser.ParseError, self.cmd_parser.ParseCommandLine,
+      'hoo the line is too long')
 
-  def testParseCommandLine3(self):
-    """Test parsing a commnad with raw argument."""
-
+    # Commnad with raw argument.
     self.cmd_parser.RegisterCommand(
-        'boo', 'A help string.', short_name='B', raw_arg=True)
+        'foo', 'A help string.', short_name='F', raw_arg=True)
 
     # Single argument, the remainder of the line.
-    self.assertEqual(
-        ('boo', ['hello world...'], False),
-        self.cmd_parser.ParseCommandLine('boo hello world...'))
+    self.assertEqual(self.cmd_parser.ParseCommandLine('foo hello world...'),
+                     ('foo', ['hello world...'], False))
 
-    self.assertEqual(
-        ('boo', ['^.*$ .?'], False),
-        self.cmd_parser.ParseCommandLine('B^.*$ .?'))
+    # Short command name and regexp string.
+    self.assertEqual(self.cmd_parser.ParseCommandLine('F^.*$ .?'),
+                     ('foo', ['^.*$ .?'], False))
 
   def testRegisterCommand(self):
 

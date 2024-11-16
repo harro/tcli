@@ -71,14 +71,7 @@ class CommandParser(dict):
     # The command expects a bool and flips the value if unspecified.
     toggle = property(lambda self: self.attr['toggle'])
 
-  def _ShortCommand(self, short_name: str) -> str|None:
-    """Find full command name for a short command letter."""
-
-    for command_name in self:
-      if self[command_name].short_name == short_name:
-        return command_name
-
-  def _CommandExpand(self, line:str) -> tuple[str|None, str, bool]:
+  def _CommandExpand(self, line:str) -> tuple[str, str, bool]:
     """Strips off command name and append indicator.
 
     e.g. S -> ('safemode', '', False),
@@ -92,19 +85,41 @@ class CommandParser(dict):
           and a bool for if the command had an append suffix or not.
     """
 
+    def _ExpandShortCommand(short_name: str) -> str|None:
+      """Find full command name for a single command letter."""
+      for command_name in self:
+        if self[command_name].short_name == short_name:
+          return command_name
+
     # Short commands are non-alphabetic or capitalised,
     # long names are always lowercase.
     append = False
     command_name = None
-    if line:
-      command_name = self._ShortCommand(line[0])
-      if command_name:
-        line = line[1 :]
-        # Short commands optionally have the APPEND suffix.
-        if line and line[0] == APPEND:
-          append = True
-          line = line[1 :]
-        line = line.lstrip(' ')
+    command_name = _ExpandShortCommand(line[0])
+    # Found short command.
+    if command_name:
+      #  Strip short command from line.
+      line = line[1:]
+      # Strip append symbol from input and reattach to command.
+      if line and line[0] is APPEND:
+        command_name += APPEND
+        line = line[1:]
+    else:
+      # Separate command from subsequent arguments.
+      if ' ' in line:
+        command_sep = line.index(' ')
+        (command_name, line) = (line[:command_sep], line[command_sep :])
+      else:
+        # No arguments, just the command.
+        command_name = line
+        line = ''
+
+    # Remove trailing whitespace.
+    line = line.strip()
+    if command_name.endswith(APPEND):
+      command_name = command_name[:-1]
+      append = True
+
     return (command_name, line, append)
 
   def ExecHandler(self, command_name:str, args:list[str], append:bool):
@@ -190,27 +205,13 @@ class CommandParser(dict):
       ParseError: If command not registered, or arguments are invalid.
     """
 
-    # Expand short form of commands.
+    if not line: raise ParseError('Missing escape command.')
+  
+    # Expand command into command name, args and it it is append or not.
     (command_name, line, append) = self._CommandExpand(line)
 
-    # Not short name, so extract long one.
-    if not command_name:
-      # Separate command from subsequent arguments.
-      if ' ' in line:
-        command_end = line.index(' ')
-        command_name = line[:command_end]
-        line = line[command_end :]
-      else:
-        command_name = line
-        line = ''
-      # Remove trailing whitespace.
-      line = line.strip()
-      if command_name.endswith(APPEND):
-        command_name = command_name[:-1]
-        append = True
-
     if command_name not in self:
-      raise ParseError('Invalid escape command %s.' % repr(command_name))
+      raise ParseError(f"Invalid escape command '{command_name}'.")
 
     # Raw args receive no further parsing.
     if self[command_name].raw_arg:
@@ -218,20 +219,19 @@ class CommandParser(dict):
 
     if append and not self[command_name].append:
       raise ParseError(
-          'Command "%s" does not support append mode.' % command_name)
+          f"Command '{command_name}' does not support append mode.")
 
     # Split remaining line into arguments.
     # Silently discard additional arguments.
     try:
       arguments = shlex.split(line)
     except ValueError as error_message:
-      raise ParseError('Invalid string could not be parsed into arguments: %s' %
-                       error_message)
+      raise ParseError(
+        f"Invalid string could not be parsed into arguments: '{error_message}'")
 
     if (len(arguments) < self[command_name].min_args or
         len(arguments) > self[command_name].max_args):
-      raise ParseError('Invalid number of arguments, found "%s".' %
-                       len(arguments))
+      raise ParseError(f'Invalid number of arguments, found: {len(arguments)}.')
 
     # Check if a command only expects (Alpha numeric) arguments.
     if (not self[command_name].regexp and
