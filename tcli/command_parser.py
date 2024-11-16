@@ -71,8 +71,58 @@ class CommandParser(dict):
     # The command expects a bool and flips the value if unspecified.
     toggle = property(lambda self: self.attr['toggle'])
 
+  def RegisterCommand(self, command_name:str, help_str:str, short_name:str='', 
+                      min_args:int=0, max_args:int=1, default_value=None, 
+                      append:bool=False, inline:bool=False, raw_arg:bool=False,
+                      regexp:bool=False, toggle:bool=False,
+                      handler:typing.Callable=lambda: None,
+                      completer:typing.Callable=lambda: None) -> None:
+    """Adds support for command to parser.
+
+    Args:
+      command_name: String name of command.
+      help_str: String describing command functionality.
+      short_name: Optional alias for command, a single capitilised character.
+      min_args: Int, minimum number of additional arguments the command expects.
+      max_args: Int, maximum number of additional arguments the command expects.
+      default_value: Value to assign to command in absece of flag overrides.
+      append: Bool, does the command support appending additional values.
+      inline: Bool, can the command be supplied on the rhs of a pipe.
+      raw_arg: Bool, do not parse args, treat as raw string.
+      regexp: Bool, can the argument be a regular expression.
+      toggle: Bool, does running the command without arguments toggle its value.
+      handler: method, execute method for this command.
+      completer: method, returns list of valid completions for commandline.
+    """
+
+    self[command_name] = self._Command({
+        'help_str': help_str,
+        'short_name': short_name,
+        'min_args': min_args,
+        'max_args': max_args,
+        'default_value': default_value,
+        'append': append,
+        'inline': inline,
+        'raw_arg': raw_arg,
+        'regexp': regexp,
+        'toggle': toggle,
+        'handler': handler,
+        'completer': completer
+    })
+
+  def UnRegisterCommand(self, command_name:str) -> None:
+    """Removes support for command from command.
+
+    Precondition, command is valid and exists.
+
+    Args:
+      command_name: str, command.
+    """
+    if command_name in self:
+      del self[command_name]
+
   def _CommandExpand(self, line:str) -> tuple[str, str, bool]:
-    """Strips off command name and append indicator.
+    """Strips out command name and append indicator from command line.
 
     e.g. S -> ('safemode', '', False),
          C show vers -> ('command', 'show vers', False)
@@ -122,7 +172,8 @@ class CommandParser(dict):
 
     return (command_name, line, append)
 
-  def ExecHandler(self, command_name:str, args:list[str], append:bool):
+  def ExecHandler(
+      self, command_name:str, args:list[str], append:bool) -> str|None:
     """Execute the handler associated with this command."""
 
     if not self[command_name].handler:
@@ -131,8 +182,8 @@ class CommandParser(dict):
 
     return self[command_name].handler.__call__(command_name, args, append)
 
-  def ExecWithDefault(self, command_name:str):
-    """Executes command handler with the default provided as the argument.
+  def ExecWithDefault(self, command_name:str) -> str|None:
+    """Executes command handler with the default value.
 
     Args:
       command_name: str, command.
@@ -164,137 +215,7 @@ class CommandParser(dict):
 
     return self.ExecHandler(command_name, [value], False)
 
-  def GetCommand(self, command_name:str) -> _Command|None:
-    """Returns object for a command, None otherwise."""
-    return self.get(command_name)
-
-  def GetDefault(self, command_name:str) -> typing.Any:
-    """Returns default value for a command.
-
-    Precondition, command is valid and exists.
-
-    Args:
-      command_name: str, command.
-
-    Returns:
-      Default value for the command.
-    """
-    return self[command_name].default_value
-
-  def InlineOnly(self) -> None:
-    """Unregister all non-inline commands from parser."""
-
-    for command_name in [c for c in self]:
-      if not self[command_name].inline:
-        self.UnRegisterCommand(command_name)
-
-  def ParseCommandLine(self, line:str) -> tuple[str, list[str], bool]:
-    """Parse string into command and arguments.
-
-    Split line into command, list of arguments and bool indicating append
-    status. Validating arguments against attributes of the command i.e. number
-    of arguments etc.
-
-    Args:
-      line: Str, command line in entirety.
-
-    Returns:
-      Tuple, command name, list of arguments, and bool indicating append or not.
-
-    Raises:
-      ParseError: If command not registered, or arguments are invalid.
-    """
-
-    if not line: raise ParseError('Missing escape command.')
-  
-    # Expand command into command name, args and it it is append or not.
-    (command_name, line, append) = self._CommandExpand(line)
-
-    if command_name not in self:
-      raise ParseError(f"Invalid escape command '{command_name}'.")
-
-    # Raw args receive no further parsing.
-    if self[command_name].raw_arg:
-      return (command_name, [line], append)
-
-    if append and not self[command_name].append:
-      raise ParseError(
-          f"Command '{command_name}' does not support append mode.")
-
-    # Split remaining line into arguments.
-    # Silently discard additional arguments.
-    try:
-      arguments = shlex.split(line)
-    except ValueError as error_message:
-      raise ParseError(
-        f"Invalid string could not be parsed into arguments: '{error_message}'")
-
-    if (len(arguments) < self[command_name].min_args or
-        len(arguments) > self[command_name].max_args):
-      raise ParseError(f'Invalid number of arguments, found: {len(arguments)}.')
-
-    # Check if a command only expects (Alpha numeric) arguments.
-    if (not self[command_name].regexp and
-        not self[command_name].raw_arg):
-      for arg in arguments:
-        if re.search(r'\W', arg):
-          raise ParseError('Arguments with alphanumeric characters only.')
-
-    return (command_name, arguments, append)
-
-  def RegisterCommand(self, command_name:str, help_str:str, short_name:str='', 
-                      min_args:int=0, max_args:int=1, default_value=None, 
-                      append:bool=False, inline:bool=False, raw_arg:bool=False,
-                      regexp:bool=False, toggle:bool=False,
-                      handler:typing.Callable=lambda: None,
-                      completer:typing.Callable=lambda: None) -> None:
-    """Adds command to parser so parser can determine if well-formed or not.
-
-    Args:
-      command_name: String name of command.
-      help_str: String describing command functionality.
-      short_name: Optional alias for command, a single capitilised character.
-      min_args: Int, minimum number of additional arguments the command expects.
-      max_args: Int, maximum number of additional arguments the command expects.
-      default_value: Value to assign to command in absece of flag overrides.
-      append: Bool, does the command support appending additional values.
-      inline: Bool, can the command be supplied on the rhs of a pipe.
-      raw_arg: Bool, do not parse args, treat as raw string.
-      regexp: Bool, can the argument be a regular expression.
-      toggle: Bool, does running the command without arguments toggle its value.
-      handler: method, execute method for this command.
-      completer: method, returns list of valid completions for commandline.
-    """
-
-    self[command_name] = self._Command({
-        'help_str': help_str,
-        'short_name': short_name,
-        'min_args': min_args,
-        'max_args': max_args,
-        'default_value': default_value,
-        'append': append,
-        'inline': inline,
-        'raw_arg': raw_arg,
-        'regexp': regexp,
-        'toggle': toggle,
-        'handler': handler,
-        'completer': completer
-    })
-
-  def UnRegisterCommand(self, command_name:str) -> None:
-    """Remove support from command.
-
-    Precondition, command is valid and exists.
-
-    Args:
-      command_name: str, command.
-    """
-    if command_name in self:
-      del self[command_name]
-
-  # Create new child with inline escape command changes.
   def ExtractInlineCommands(self, command:str) -> tuple[str,list[str]]:
-    # pylint: disable=missing-docstring
     f"""Separate out inline commmand overrides from command input.
 
     Converts something like:
@@ -417,3 +338,81 @@ class CommandParser(dict):
       new_token_list = []
 
     return (lhs_str.strip(), ''.join(new_token_list).strip())
+
+  def GetCommand(self, command_name:str) -> _Command|None:
+    """Returns object for a command, None otherwise."""
+    return self.get(command_name)
+
+  def GetDefault(self, command_name:str) -> typing.Any:
+    """Returns default value for a command.
+
+    Precondition, command is valid and exists.
+
+    Args:
+      command_name: str, command.
+
+    Returns:
+      Default value for the command.
+    """
+    return self[command_name].default_value
+
+  def InlineOnly(self) -> None:
+    """Unregister all non-inline commands from parser."""
+
+    for command_name in [c for c in self]:
+      if not self[command_name].inline:
+        self.UnRegisterCommand(command_name)
+
+  def ParseCommandLine(self, line:str) -> tuple[str, list[str], bool]:
+    """Parse string into command and arguments.
+
+    Split line into command, list of arguments and bool indicating append
+    status. Validating arguments against attributes of the command i.e. number
+    of arguments etc.
+
+    Args:
+      line: Str, command line in entirety.
+
+    Returns:
+      Tuple, command name, list of arguments, and bool indicating append or not.
+
+    Raises:
+      ParseError: If command not registered, or arguments are invalid.
+    """
+
+    if not line: raise ParseError('Missing escape command.')
+  
+    # Expand command into command name, args and it it is append or not.
+    (command_name, line, append) = self._CommandExpand(line)
+
+    if command_name not in self:
+      raise ParseError(f"Invalid escape command '{command_name}'.")
+
+    # Raw args receive no further parsing.
+    if self[command_name].raw_arg:
+      return (command_name, [line], append)
+
+    if append and not self[command_name].append:
+      raise ParseError(
+          f"Command '{command_name}' does not support append mode.")
+
+    # Split remaining line into arguments.
+    # Silently discard additional arguments.
+    try:
+      arguments = shlex.split(line)
+    except ValueError as error_message:
+      raise ParseError(
+        f"Invalid string could not be parsed into arguments: '{error_message}'")
+
+    if (len(arguments) < self[command_name].min_args or
+        len(arguments) > self[command_name].max_args):
+      raise ParseError(f'Invalid number of arguments, found: {len(arguments)}.')
+
+    # Check if a command only expects (Alpha numeric) arguments.
+    if (not self[command_name].regexp and
+        not self[command_name].raw_arg):
+      for arg in arguments:
+        if re.search(r'\W', arg):
+          raise ParseError('Arguments with alphanumeric characters only.')
+
+    return (command_name, arguments, append)
