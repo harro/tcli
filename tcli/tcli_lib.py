@@ -702,8 +702,7 @@ class TCLI(object):
                      'Hostname': response.device_name}
 
       device = self.devices[response.device_name]
-      # TODO(harro): Referencing DEVICE_ATTRIBUTES directly should be avoided.
-      for attr in inventory.DEVICE_ATTRIBUTES:
+      for attr in self.inventory.attributes:
 
         # Some attributes are a list rather than a string, such as flags.
         # These are not supported by Clitable attribute matching
@@ -714,9 +713,9 @@ class TCLI(object):
 
         # The filter index uses capitilised first letter for column names.
         # For some values we capitilise part of the value.
-        if inventory.DEVICE_ATTRIBUTES[attr].display_case == 'title':
+        if self.inventory.attributes[attr].display_case == 'title':
           filter_attr[attr.title()] = getattr(device, attr).title()
-        elif inventory.DEVICE_ATTRIBUTES[attr].display_case == 'upper':
+        elif self.inventory.attributes[attr].display_case == 'upper':
           filter_attr[attr.title()] = getattr(device, attr).upper()
         else:
           filter_attr[attr.title()] = getattr(device, attr)

@@ -390,7 +390,7 @@ class UnitTestTCLI(unittest.TestCase):
   def _CannedResponse(self):      # pylint: disable=invalid-name
     """Setup some canned commands and responses."""
 
-    tcli.inventory.DEVICE_ATTRIBUTES = {
+    self.tcli_obj.inventory.attributes = {
         'vendor': tcli.inventory.inventory_base.Attribute(
             'vendor', '', None, '', display_case='title')}
     # Initialise the textfsm engine in TCLI.

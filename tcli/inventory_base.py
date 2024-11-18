@@ -524,7 +524,7 @@ class Inventory(object):
     if not literals: return True
 
     attribute = filter_name
-    # Trim off the 'x' prefix for matching exclusions against attributes.
+    # Trim off the 'x' prefix for attribute name.
     if filter_name.startswith('x'):
       attribute = filter_name[1 :]
 
