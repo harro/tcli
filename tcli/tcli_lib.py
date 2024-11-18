@@ -1034,8 +1034,7 @@ class TCLI(object):
     for device_name in self.device_list:
       device = self.devices[device_name]
       attr_list = [device_name]
-      # TODO(harro): Shouldn't need to call DEVICE_ATTRIBUTES directly.
-      for name in inventory.DEVICE_ATTRIBUTES:
+      for name in self.inventory.attributes:
         if name == 'flags': continue
         if not getattr(device, name): continue
         attr_list.append(f'{name.title()}:{str(getattr(device, name)) or ''}')
