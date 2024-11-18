@@ -378,39 +378,53 @@ class TCLI(object):
   def Completer(self, word:str, state:int) -> str|None:
     """Command line completion used by readline library."""
 
+    # The readline completer is not stateful. So we read the full line and pass
+    # that to the respective completer functions.
+
     # Silently discard leading whitespace on cli.
-    full_line = readline.get_line_buffer().lstrip() # type: ignore
+    full_line = readline.get_line_buffer().lstrip()                             # type: ignore
+
     if full_line and full_line.startswith(SLASH):
-      return self._TildeCompleter(full_line, state)
+      # Drop the slash before passing the command.
+      return self._TildeCompleter(full_line[1:], state)
+
+    # If not a TCLI command, or an empty prompt, then return completions for 
+    # known remote device commands that we support with TextFSM.
     return self._CmdCompleter(full_line, state)
 
   def _TildeCompleter(self, full_line:str, state:int) -> str|None:
     """Command line completion for escape commands."""
 
-    # Pass subsequent arguments of a command to its completer.
+    completer_list = []
+    # We have a complete TCLI command.
     if ' ' in full_line:
-      cmd = full_line[1:full_line.index(' ')]
-      arg_string = full_line[full_line.index(' ') + 1 :]
-      completer_list = []
-      cmd_obj = self.cli_parser.GetCommand(cmd)
-      if cmd_obj:
-        for arg_options in cmd_obj.completer():
-          if arg_options.startswith(arg_string):
-            completer_list.append(arg_options)
+      word_sep = full_line.index(' ')         # Word boundary.
+      (cmd_name, arg_string) = (full_line[:word_sep], full_line[word_sep +1:])
+
+      # If we have a shortname, expand it before continuing.
+      if len(cmd_name) == 1:
+        for cname in self.cli_parser:
+          if self.cli_parser[cname].short_name is cmd_name:
+            cmd_name = cname
+
+      # Compare the subsequent arguments with the specific command completer.
+      if self.cli_parser.GetCommand(cmd_name):
+        for arg_option in self.cli_parser.GetCommand(cmd_name).completer():     # type: ignore
+          if arg_option.startswith(arg_string):
+            completer_list.append(arg_option)
 
       if state < len(completer_list):
         return completer_list[state]
       return None
 
-    # First word, a TCLI command word.
-    completer_list = []
-    for cmd in self.cli_parser:
-      # Strip TILDE and compare.
-      if cmd.startswith(full_line[1 :]):
-        completer_list.append(cmd)
-        cmd_obj = self.cli_parser.GetCommand(cmd)
-        if cmd_obj and cmd_obj.append:
-          completer_list.append(cmd + command_parser.APPEND)
+    # Partial, or whole command word with no arguments.
+    for cmd_name in self.cli_parser:
+      if cmd_name.startswith(full_line):
+        completer_list.append(cmd_name)
+        if (self.cli_parser.GetCommand(cmd_name) and
+        self.cli_parser.GetCommand(cmd_name).append):
+          # Add the apend option of the command to the list
+          completer_list.append(cmd_name + command_parser.APPEND)
     completer_list.sort()
 
     if state < len(completer_list):

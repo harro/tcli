@@ -227,19 +227,20 @@ class UnitTestTCLI(unittest.TestCase):
         self.assertFalse(self.tcli_obj.interactive)
 
   def testTildeCompleter(self):
+    """Tests completing TCLI native commands."""
 
+    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 0), '/record')
     self.assertEqual(
-        '/record', self.tcli_obj._TildeCompleter('/reco', 0))
+      self.tcli_obj._TildeCompleter('reco', 1), f'/record{APPEND}')
+    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 2), '/recordall')
     self.assertEqual(
-        '/record{}'.format(APPEND), self.tcli_obj._TildeCompleter('/reco', 1))
-    self.assertEqual(
-        '/recordall', self.tcli_obj._TildeCompleter('/reco', 2))
-    self.assertEqual(
-        '/recordall{}'.format(APPEND),
-        self.tcli_obj._TildeCompleter('/reco', 3))
-    self.assertEqual(
-        '/recordstop', self.tcli_obj._TildeCompleter('/reco', 4))
-    self.assertIsNone(self.tcli_obj._TildeCompleter('/reco', 5))
+      self.tcli_obj._TildeCompleter('reco', 3), f'/recordall{APPEND}')
+    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 4), '/recordstop')
+    self.assertIsNone(self.tcli_obj._TildeCompleter('reco', 5))
+    # Complete on command arguments.
+    self.assertEqual(self.tcli_obj._TildeCompleter('safemode ', 0), 'on')
+    # Complete on command arguments for short names.
+    self.assertEqual(self.tcli_obj._TildeCompleter('S ', 0), 'on')
 
   def testCmdCompleter(self):
     self.tcli_obj = tcli.TCLI()
