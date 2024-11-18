@@ -131,14 +131,6 @@ DEFAULT_CONFIGFILE = os.path.join(os.path.expanduser('~'), '.tclirc')
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
-  'cmds', None, """
-    Commands (newline separated) to send to devices in the target list.
-    'Prompting' commands, commands that request further input from the
-    user before completing are discouraged and will fail.
-
-    Examples to avoid: telnet, ping, reload.""", short_name='C')
-
-flags.DEFINE_string(
   'config_file', DEFAULT_CONFIGFILE, """
     Configuration file to read. Lines in this file will be read into '
     buffer "startup" and played.'
@@ -147,11 +139,6 @@ flags.DEFINE_string(
 flags.DEFINE_boolean(
   'dry_run', False,
   f'{I}Display commands and targets, without submitting commands.')
-
-flags.DEFINE_boolean(
-  'interactive', False,
-  f'{I}tcli runs in interactive mode. This is the default mode if no'
-  ' cmds are supplied.\n', short_name='I')
 
 flags.DEFINE_string(
   'template_dir', os.path.join(os.path.dirname(__file__), 'testdata'),

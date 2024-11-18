@@ -135,8 +135,6 @@ class UnitTestTCLI(unittest.TestCase):
     # Turn off looking for .tclirc
     tcli.FLAGS.color = False
     tcli.FLAGS.config_file = 'none'
-    tcli.FLAGS.interactive = False
-    tcli.FLAGS.cmds = None
     tcli.FLAGS.display = 'raw'
     tcli.FLAGS.filter = None
 
