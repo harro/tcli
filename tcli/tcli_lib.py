@@ -612,11 +612,7 @@ class TCLI(object):
         requests.append(req)
 
     # Submit command request to inventory manager for each host.
-    try:
-      requests_callbacks = [(req, self.Callback) for req in requests]
-    except AttributeError as error_message:
-      logging.error('Submitting the requests caused an AttributeError: %s.',
-                    error_message)
+    requests_callbacks = [(req, self.Callback) for req in requests]
     # Setup progress indicator.
     self.cmd_response.StartIndicator()
     self.inventory.SendRequests(requests_callbacks, deadline=self.timeout)
@@ -958,6 +954,7 @@ class TCLI(object):
   def _CmdEnv(self, command:str, args:list[str], append:bool) -> str:
     """Display various environment variables."""
 
+    inventory_str = ''
     if self.inventory:
       inventory_str = self.inventory.ShowEnv()
 
