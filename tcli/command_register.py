@@ -46,7 +46,6 @@ flags.DEFINE_integer(
   f'{I}Period (in seconds) to wait for outstanding command responses.',
   short_name='O')
 
-flags.DEFINE_boolean('sorted', False, f'{I}Sort device entries in output.')
 
 def RegisterCommands(
     command_object, cli_parser:command_parser.CommandParser) -> None:

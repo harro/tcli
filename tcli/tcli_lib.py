@@ -140,6 +140,8 @@ flags.DEFINE_boolean(
   'dry_run', False,
   f'{I}Display commands and targets, without submitting commands.')
 
+flags.DEFINE_boolean('sorted', False, f'{I}Sort device entries in output.')
+
 flags.DEFINE_string(
   'template_dir', os.path.join(os.path.dirname(__file__), 'testdata'),
   f'{I}Path where command templates are located', short_name='t')
