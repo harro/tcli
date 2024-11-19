@@ -397,6 +397,7 @@ class TCLI(object):
 
     completer_list = []
     # We have a complete TCLI command.
+    # Ignore get_completer_delims, we only use spaces as separators.
     if ' ' in full_line:
       word_sep = full_line.index(' ')         # Word boundary.
       (cmd_name, arg_string) = (full_line[:word_sep], full_line[word_sep +1:])
@@ -441,7 +442,6 @@ class TCLI(object):
       current_word = ''
       line_tokens = []
       word_boundary = False
-      self._completer_list = []
       # What has been typed so far.
 
       # Collapse quotes to remove any whitespace within.
@@ -450,12 +450,12 @@ class TCLI(object):
       # Remove double spaces etc
       cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
 
-      # Are we part way through typing a word or not.
+      # Are we part way through typing a word.
       if cleaned_line and cleaned_line.endswith(' '):
         word_boundary = True
 
       cleaned_line = cleaned_line.rstrip()
-      # If blank line then this is also a word boundary.
+      # If a blank line then this is also a word boundary.
       if not cleaned_line:
         word_boundary = True
       else:
@@ -467,7 +467,7 @@ class TCLI(object):
 
       # Compare with table of possible commands
       if self.filter_engine:
-        for row in self.filter_engine.index.index:
+        for row in self.filter_engine.index.index:                              # type: ignore
           # Split the regexp into tokens, re combine only as many as there are
           # in the line entered so far.
           cmd_tokens = row['Command'].split(' ')
@@ -1029,16 +1029,14 @@ class TCLI(object):
 
     result: list[str] = []
     # Print the brief comment regarding escape commands.
-    for cmd in sorted(self.cli_parser):
-      cmd_obj: typing.Any|None = self.cli_parser.GetCommand(cmd)
+    for cmd_name in sorted(self.cli_parser):
+      cmd_obj = self.cli_parser.GetCommand(cmd_name)
       if not cmd_obj: continue
       append_str = '[+]' if cmd_obj.append else ''
-      arg = ''
-      if cmd_obj.min_args:
-        arg = f' <{cmd}>'
+      arg = f' <{cmd_name}>' if cmd_obj.min_args else ''
       result.append(
-        f'{cmd}{append_str}{arg}{cmd_obj.help_str}\n\n')
-    return ''.join(result)
+        f'{cmd_name}{append_str}{arg} {cmd_obj.help_str}')
+    return '\n\n'.join(result)
 
   def _CmdInventory(self, command:str, args:list[str], append:bool) -> str:
     """Displays devices in target list."""

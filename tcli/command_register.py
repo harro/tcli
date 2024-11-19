@@ -27,7 +27,7 @@ flags.DEFINE_enum(
     Shortname: 'D'.""", short_name='D')
 
 flags.DEFINE_enum(
-  'filter', 'default_index', ['default_index', ''], """
+  'filter', 'default_index', ['default_index'], """
     File name that maps templates for extracting data from output.
     Is disabled if display is in 'raw' mode.
     Shortname: 'F'.""", short_name='F')
@@ -112,7 +112,7 @@ def RegisterCommands(
   cli_parser.RegisterCommand(
     'exec', f"""
     Execute command in shell.
-    {I}Shortname: '!'.""", short_name='!', min_args=1, raw_arg=True,
+    Shortname: '!'.""", short_name='!', min_args=1, raw_arg=True,
     handler=command_object._CmdExecShell)
   
   cli_parser.RegisterCommand(
