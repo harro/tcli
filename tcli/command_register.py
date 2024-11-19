@@ -26,10 +26,10 @@ flags.DEFINE_enum(
     Available display formats are: {DISPLAY_FORMATS}
     Shortname: 'D'.""", short_name='D')
 
-flags.DEFINE_enum(
-  'filter', 'default_index', ['default_index'], """
-    File name that maps templates for extracting data from output.
-    Is disabled if display is in 'raw' mode.
+flags.DEFINE_string(
+  'filter', 'default_index', """
+    Name of index file that contains the map of command output to TextFSM
+    templates. For extracting relevant data from command output for display.
     Shortname: 'F'.""", short_name='F')
 
 flags.DEFINE_boolean(
