@@ -409,8 +409,8 @@ class TCLI(object):
             cmd_name = cname
 
       # Compare the subsequent arguments with the specific command completer.
-      if self.cli_parser.GetCommand(cmd_name):
-        for arg_option in self.cli_parser.GetCommand(cmd_name).completer():     # type: ignore
+      if cmd_name in self.cli_parser:
+        for arg_option in self.cli_parser[cmd_name].completer():
           if arg_option.startswith(arg_string):
             completer_list.append(arg_option)
 
@@ -422,8 +422,7 @@ class TCLI(object):
     for cmd_name in self.cli_parser:
       if cmd_name.startswith(full_line):
         completer_list.append(cmd_name)
-        if (self.cli_parser.GetCommand(cmd_name) and
-        self.cli_parser.GetCommand(cmd_name).append):
+        if (cmd_name in self.cli_parser and self.cli_parser[cmd_name].append):
           # Add the apend option of the command to the list
           completer_list.append(cmd_name + command_parser.APPEND)
     completer_list.sort()
@@ -1030,8 +1029,7 @@ class TCLI(object):
     result: list[str] = []
     # Print the brief comment regarding escape commands.
     for cmd_name in sorted(self.cli_parser):
-      cmd_obj = self.cli_parser.GetCommand(cmd_name)
-      if not cmd_obj: continue
+      cmd_obj = self.cli_parser[cmd_name]
       append_str = '[+]' if cmd_obj.append else ''
       arg = f' <{cmd_name}>' if cmd_obj.min_args else ''
       result.append(
