@@ -14,16 +14,14 @@
 
 """Executable for TCLI."""
 
+import importlib
 import logging
 import sys
 from absl import app
 from absl import flags
 import tcli.tcli_lib as tcli
 
-flags.DEFINE_boolean(
-  'interactive', False,
-  'TCLI runs in interactive mode. This is the default mode if no'
-  ' cmds are supplied.\n', short_name='I')
+
 flags.DEFINE_string(
   'cmds', None, """
     Commands (newline separated) to send to devices in the target list.
@@ -31,10 +29,19 @@ flags.DEFINE_string(
     user before completing are discouraged and will fail.
 
     Examples to avoid: telnet, ping, reload.""", short_name='C')
+flags.DEFINE_boolean(
+  'interactive', False,
+  'TCLI runs in interactive mode. This is the default mode if no'
+  ' cmds are supplied.\n', short_name='I')
+# Defaults to inventory_csv.py which contains canned data for testing.
+flags.DEFINE_string('inventory_file', 'inventory_csv',
+                    'Name of the  module that implements the Inventory class.')
 FLAGS = flags.FLAGS
 
 
 def main(_):
+  # Replace the generic Inventory class with the site specific one.
+  tcli.inventory = importlib.import_module(f'tcli.{FLAGS.inventory_file}')
   tcli_singleton = tcli.TCLI()
   try:
     logging.debug('Executing StartUp.')

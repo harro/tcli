@@ -60,6 +60,8 @@ except(ImportError):
 from tcli import command_parser
 from tcli import command_register
 from tcli import command_response
+# To be overridden in main.py
+from tcli import inventory_base as inventory
 from tcli import text_buffer
 from tcli.command_parser import ParseError, I
 from tcli.tcli_textfsm import clitable
@@ -67,13 +69,6 @@ from tcli.tcli_textfsm.clitable import CliTableError
 from textfsm import terminal
 from textfsm import texttable
 from textfsm.texttable import TableError
-
-# Substitute import with appropriate inventory/device accessor library.
-# The example library provided uses static CSV file for inventory and some
-# canned output as example device responses. It serves as an example only.
-## CHANGEME
-##
-from tcli import inventory_csv as inventory  #pylint: disable=g-bad-import-order
 
 # Formats for displaying to the user.
 DISPLAY_FORMATS = command_register.DISPLAY_FORMATS
