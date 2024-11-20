@@ -42,15 +42,12 @@ FLAGS = flags.FLAGS
 def main(_):
   # Replace the generic Inventory class with the site specific one.
   tcli.inventory = importlib.import_module(f'tcli.{FLAGS.inventory_file}')
-  tcli_singleton = tcli.TCLI()
   try:
-    logging.debug('Executing StartUp.')
-    tcli_singleton.StartUp(FLAGS.cmds, FLAGS.interactive)
+    tcli_singleton = tcli.TCLI(FLAGS.interactive, FLAGS.cmds)
   except (EOFError, tcli.TcliCmdError,
           tcli.inventory.AuthError, tcli.inventory.InventoryError,
           ValueError) as error_message:
     print('%s' % error_message, file=sys.stderr)
-    del tcli_singleton
     sys.exit(1)
 
   if not tcli_singleton.interactive:

@@ -60,7 +60,7 @@ except(ImportError):
 from tcli import command_parser
 from tcli import command_register
 from tcli import command_response
-# To be overridden in main.py
+# inventory import will be overridden in main.py
 from tcli import inventory_base as inventory
 from tcli import text_buffer
 from tcli.command_parser import ParseError, I
@@ -192,13 +192,14 @@ class TCLI(object):
     xtargets: String of device names and regular expressions to exclude.
   """
 
-  def __init__(self):
+  def __init__(self, interactive=False, commands='', inventory=None) -> None:
     # Also see copy method when modifying/adding attributes.
 
     # Async callback.
     self._lock = threading.Lock()
     self._completer_list = []
-    self.interactive = False
+    self.interactive = interactive
+    self.inventory = inventory
     self.filter_engine = None
     self.playback = None
     self.prompt: str|None = None
@@ -221,14 +222,28 @@ class TCLI(object):
     self.buffers = text_buffer.TextBuffer()
     self.cmd_response = command_response.CmdResponse()
     self.cli_parser = command_parser.CommandParser()
-    if not hasattr(self, 'inventory'):
-      self.inventory: inventory.Inventory|None = None
+    # Determine if we are interactive or not.
+    if not self.inventory:
+      self._InitInventory()
+    command_register.RegisterCommands(self, self.cli_parser)
+    # Set some markup flags early.
+    # We bracket the RC file and apply/reapply the default settings from Flags.
+    command_register.SetFlagDefaults(self.cli_parser)
+    if self.interactive:
+      # Set safe mode.
+      self.cli_parser.ExecHandler('safemode', ['on'], False)
+      # Apply user settings.
+      self._ParseRCFile()
+      # Reapply flag values that may have changed by RC commands.
+      command_register.SetFlagDefaults(self.cli_parser)
+    if commands:
+      self.ParseCommands(commands)
 
   def __copy__(self):
     """Copies attributes from self to new tcli child object."""
 
     # Inline escape commands are processed in a child object.
-    tcli_obj = TCLI()
+    tcli_obj = TCLI(inventory=self.inventory)
 
     # Copy by reference.
     # log and record to the same buffers.
@@ -296,6 +311,7 @@ class TCLI(object):
       self.inventory = inventory.Inventory()
       # Add additional command support for Inventory library.
       self.inventory.RegisterCommands(self.cli_parser)
+      self.inventory.SetFiltersFromDefaults(self.cli_parser)
     except inventory.AuthError as error_message:
       self._Print(str(error_message), msgtype='warning')
       raise inventory.AuthError()
@@ -326,48 +342,6 @@ class TCLI(object):
               'Error: Reading config file: %s' % sys.exc_info()[1],
               msgtype='warning')
           raise EOFError()
-
-  def StartUp(self, commands, interactive) -> None:
-    """Runs rc file commands and initial startup tasks.
-
-      The RC file may contain any valid TCLI commands including commands to send
-      to devices. At the same time flags are a more specific priority than RC
-      commands _IF_ set explicitly (non default).
-
-      So we parse and set a bunch of flags early that a benigh (do not issue
-      commands to devices or play out buffer content etc).
-      Run the RC file, after which we re-appply explicitly set flags values.
-    Args:
-      commands: List of Strings, device commands to send at startup.
-      interactive: Bool, are we running as an interactive CLI.
-
-    Raises:
-      EOFError: A non-default config_file could not be opened.
-      inventory.AuthError: Inventory could not be retrieved due to permissions.
-      TcliCmdError: Same buffer is target of several record/log commands.
-    """
-
-    # Determine if we are interactive or not.
-    self.interactive = interactive
-    if not commands:
-      self.interactive = True
-    if not self.inventory:
-      self._InitInventory()
-    command_register.RegisterCommands(self, self.cli_parser)
-    if self.inventory:
-      self.inventory.SetFiltersFromDefaults(self.cli_parser)
-    # Set some markup flags early.
-    # We bracket the RC file and apply/reapply the default settings from Flags.
-    command_register.SetFlagDefaults(self.cli_parser)
-    if self.interactive:
-      # Set safe mode.
-      self.cli_parser.ExecHandler('safemode', ['on'], False)
-      # Apply user settings.
-      self._ParseRCFile()
-      # Reapply flag values that may have changed by RC commands.
-      command_register.SetFlagDefaults(self.cli_parser)
-    if commands:
-      self.ParseCommands(commands)
 
   # pylint: disable=unused-argument
   def Completer(self, word:str, state:int) -> str|None:

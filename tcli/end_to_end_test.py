@@ -61,32 +61,32 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
     tcli.FLAGS.config_file = os.path.join(
         os.path.dirname(__file__), 'testdata', 'rc_file')
 
-  def testSendReceiveCommand(self):
+  def testSendReceiveCommandInteractive(self):
 
     # Mock the class method as an inline object is created dynamically.
     with mock.patch.object(tcli.TCLI, '_Print') as mock_tcli_out:
-      gcl_obj = tcli.TCLI()
-      gcl_obj.StartUp(None, False)
+      tcli_obj = tcli.TCLI(interactive=True)
 
       # RC script sets log buffer.
-      self.assertEqual('abuffer', gcl_obj.log)
+      self.assertEqual('abuffer', tcli_obj.log)
 
       # Safe mode starts on in interactive mode, toggle it off here.
-      gcl_obj.ParseCommands('/S')
+      tcli_obj.ParseCommands('/S')
       # Revert the format to 'raw' and test setting it to 'csv' inline.
-      gcl_obj.ParseCommands('/D raw')
+      tcli_obj.ParseCommands('/D raw')
       # Issue some commands interactively.
-      gcl_obj.ParseCommands('/T device_a,device_b')
-      gcl_obj.ParseCommands('/X ^')
-      gcl_obj.ParseCommands('cat a //D csv\ncat b //D csv')
+      tcli_obj.ParseCommands('/T device_a,device_b')
+      tcli_obj.ParseCommands('/X ^')
+      tcli_obj.ParseCommands('cat a //D csv\ncat b //D csv')
 
       mock_tcli_out.assert_has_calls([
+          mock.call("Invalid escape command 'bogus'.", msgtype='warning'),
           mock.call(HEADER % 'a', msgtype='title'),
           mock.call(OUTPUT_A),
           mock.call(HEADER % 'b', msgtype='title'),
           mock.call(OUTPUT_B)])
 
-    self.assertEqual('raw', gcl_obj.display)
+    self.assertEqual('raw', tcli_obj.display)
 
   def testSendReceiveCommandBatch(self):
 
@@ -94,8 +94,7 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
     tcli.FLAGS.xtargets = ''
     # Mock the class as commands are executed before the object is returned.
     with mock.patch.object(tcli.TCLI, '_Print') as mock_tcli_out:
-      gcl_obj = tcli.TCLI()
-      gcl_obj.StartUp('cat a\ncat b', False)
+      tcli_obj = tcli.TCLI(interactive=False, commands='cat a\ncat b')
 
       mock_tcli_out.assert_has_calls([
           mock.call(HEADER % 'a', msgtype='title'),
@@ -104,7 +103,7 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
           mock.call(OUTPUT_B)])
 
     # RC script ignored.
-    self.assertEqual(gcl_obj.log, '')
+    self.assertEqual(tcli_obj.log, '')
 
 
 if __name__ == '__main__':

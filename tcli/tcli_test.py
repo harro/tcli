@@ -115,21 +115,20 @@ class UnitTestTCLI(unittest.TestCase):
 
   @classmethod
   def setUpClass(cls):
-    super(UnitTestTCLI, cls).setUpClass()
     cls.flags_orig = copy.deepcopy(tcli.FLAGS)
     tcli.command_response.threading.Event = mock.MagicMock()
     tcli.command_response.threading.Lock = mock.MagicMock()
     tcli.command_response.tqdm = mock.MagicMock()
-    tcli.FLAGS.template_dir = os.path.join(os.path.dirname(__file__),
-                                           'testdata')
+    tcli.FLAGS.template_dir = os.path.join(
+      os.path.dirname(__file__), 'testdata')
+    return super().setUpClass()
 
   @classmethod
   def tearDownClass(cls):
-    super(UnitTestTCLI, cls).tearDownClass()
     tcli.FLAGS = cls.flags_orig
+    return super().tearDownClass()
 
   def setUp(self):
-    super(UnitTestTCLI, self).setUp()
     # Instantiate FLAGS global var.
     tcli.FLAGS([__file__,])
     # Turn off looking for .tclirc
@@ -140,13 +139,11 @@ class UnitTestTCLI(unittest.TestCase):
 
     self.orig_terminal_size = tcli.terminal.TerminalSize
     tcli.terminal.TerminalSize = lambda: (10, 20)
-
     self.orig_dev_attr = tcli.inventory.DEVICE_ATTRIBUTES
     tcli.inventory.DEVICE_ATTRIBUTES = {}
 
-    self.tcli_obj = tcli.TCLI()
-
-    self.tcli_obj.inventory = mock.MagicMock()
+    with mock.patch.object(tcli.inventory, 'Inventory'):
+      self.tcli_obj = tcli.TCLI(interactive=False)
     self.tcli_obj.inventory.device_list = ['a', 'b', 'c']
     dev_attr = collections.namedtuple('dev_attr', [])
     self.tcli_obj.inventory.devices = {'a': dev_attr(),
@@ -155,7 +152,6 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.inventory.targets = ''
     self.tcli_obj.inventory.CreateCmdRequest.return_value = FakeCmdResponse(
         '123')
-
     self.tcli_obj._Print = mock.Mock()
 
     command_register.RegisterCommands(self.tcli_obj, self.tcli_obj.cli_parser)
@@ -165,13 +161,13 @@ class UnitTestTCLI(unittest.TestCase):
 
     self.tcli_obj.verbose = True
     self.tcli_obj.linewrap = True
-    self.tcli_obj.color = False
     self.tcli_obj.timeout = 1
+    return super().setUp()
 
   def tearDown(self):
-    super(UnitTestTCLI, self).tearDown()
     tcli.terminal.TerminalSize = self.orig_terminal_size
     tcli.inventory.DEVICE_ATTRIBUTES = self.orig_dev_attr
+    return super().tearDown()
 
   def testCopy(self):
     # TODO(harro): Tests for extended commands?
@@ -205,27 +201,6 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual(tcli.FLAGS.color, self.tcli_obj.color)
     self.assertEqual(tcli.FLAGS.timeout, self.tcli_obj.timeout)
 
-  def testStartUp(self):
-    """Tests flag setup and run commands."""
-
-    # Sanity check defaults.
-    assert (
-        tcli.FLAGS.display == 'raw' and
-        tcli.FLAGS.filter is None)
-
-    # Don't read from a .tclirc file.
-    tcli.FLAGS.config_file = 'none'
-
-    with mock.patch.object(self.tcli_obj, 'ParseCommands'):
-      with mock.patch.object(self.tcli_obj, '_InitInventory'):
-        self.tcli_obj.StartUp(None, False)
-        # Without target or cmds, interactive is set to True.
-        self.assertTrue(self.tcli_obj.interactive)
-
-        self.tcli_obj.StartUp('bogus', False)
-        # With target or cmds, interactive is set by StartUp.
-        self.assertFalse(self.tcli_obj.interactive)
-
   def testTildeCompleter(self):
     """Tests completing TCLI native commands."""
 
@@ -243,7 +218,8 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual(self.tcli_obj._TildeCompleter('S ', 0), 'on')
 
   def testCmdCompleter(self):
-    self.tcli_obj = tcli.TCLI()
+    with mock.patch.object(tcli.inventory, 'Inventory'):
+      self.tcli_obj = tcli.TCLI()
     self.tcli_obj.filter = 'default'
     clitable.CliTable.INDEX = {}
     self.tcli_obj.filter_engine = clitable.CliTable(
