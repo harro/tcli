@@ -11,8 +11,7 @@ MODE_FORMATS = ['cli', 'gated', 'http', 'shell']
 # Flag help string indentation.
 I = '\n' + ' '*4
 
-# Commands that can be populated at invocation, as well as during execution.
-FLAGS = flags.FLAGS
+# TCLI commands that can be populated at invocation via flags.
 flags.DEFINE_boolean(
   'color', True, f'{I}Toggle using color when displaying results.')
 
@@ -37,15 +36,24 @@ flags.DEFINE_boolean(
 
 flags.DEFINE_enum(
   'mode', 'cli', MODE_FORMATS, f"""
-    Extensible set of routines used for formatting command output.
-    Available display formats are: {DISPLAY_FORMATS}
-    Shortname: 'D'.""", short_name='M')
+    CLI mode for command. Available display formats are: {MODE_FORMATS}
+    Shortname: 'M'.""", short_name='M')
 
 flags.DEFINE_integer(
   'timeout', 45,
   f'{I}Period (in seconds) to wait for outstanding command responses.',
   short_name='O')
 
+FLAGS = flags.FLAGS
+
+def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:
+  """Calls TCLI commands with flags values as the default."""
+
+  # Called against each flag declared in this module (only).
+  for command_name in ('color', 'color_scheme', 'display', 'filter',
+                       'linewrap', 'mode', 'timeout'):
+    # Calling the handlers directly will not be logged.
+    cli_parser.ExecWithDefault(command_name)
 
 def RegisterCommands(
     command_object, cli_parser:command_parser.CommandParser) -> None:
@@ -230,15 +238,3 @@ def RegisterCommands(
     'vi', f'{I}Opens buffer in vi editor.', min_args=1, 
     handler=command_object._CmdEditor)
 
-def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:
-  """Parses command line flags ad sets default attributes.
-
-    Commands here affect data representation/presentation but are otherwise
-    harmless.
-  """
-
-  # Called against each flag declared in this module.
-  for command_name in ('color', 'color_scheme', 'display', 'filter',
-                        'linewrap', 'mode', 'timeout'):
-    # Calling the handlers directly will not be logged.
-    cli_parser.ExecWithDefault(command_name)

@@ -222,20 +222,19 @@ class TCLI(object):
     self.buffers = text_buffer.TextBuffer()
     self.cmd_response = command_response.CmdResponse()
     self.cli_parser = command_parser.CommandParser()
-    # Determine if we are interactive or not.
     if not self.inventory:
       self._InitInventory()
     command_register.RegisterCommands(self, self.cli_parser)
     # Set some markup flags early.
     # We bracket the RC file and apply/reapply the default settings from Flags.
     command_register.SetFlagDefaults(self.cli_parser)
+    # If interactive then the user will input furhter commands.
+    # So we enable safe mode and apply the users .tclirc file.
     if self.interactive:
       # Set safe mode.
       self.cli_parser.ExecHandler('safemode', ['on'], False)
       # Apply user settings.
       self._ParseRCFile()
-      # Reapply flag values that may have changed by RC commands.
-      command_register.SetFlagDefaults(self.cli_parser)
     if commands:
       self.ParseCommands(commands)
 
