@@ -174,6 +174,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.buffers.Append('label', 'content')
     self.tcli_obj.record = ''
     inline_tcli = copy.copy(self.tcli_obj)
+    inline_tcli.cli_parser.InlineOnly()
     self.assertEqual('content', self.tcli_obj.buffers.GetBuffer('label'))
     self.assertFalse(self.tcli_obj.record)
     # Change parent.

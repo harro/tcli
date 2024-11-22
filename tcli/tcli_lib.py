@@ -225,8 +225,6 @@ class TCLI(object):
     if not self.inventory:
       self._InitInventory()
     command_register.RegisterCommands(self, self.cli_parser)
-    # Set some markup flags early.
-    # We bracket the RC file and apply/reapply the default settings from Flags.
     command_register.SetFlagDefaults(self.cli_parser)
     # If interactive then the user will input furhter commands.
     # So we enable safe mode and apply the users .tclirc file.
@@ -238,32 +236,16 @@ class TCLI(object):
     if commands:
       self.ParseCommands(commands)
 
-  def __copy__(self):
+  def __copy__(self) -> "TCLI":
     """Copies attributes from self to new tcli child object."""
-
-    # Inline escape commands are processed in a child object.
     tcli_obj = TCLI(inventory=self.inventory)
-
-    # Copy by reference.
-    # log and record to the same buffers.
     tcli_obj.buffers = self.buffers
-    tcli_obj.filter_engine = self.filter_engine
     tcli_obj.cmd_response = self.cmd_response
-    # Use the same client and device access for fetching results.
-    tcli_obj.inventory = self.inventory
-
-    tcli_obj.cli_parser = command_parser.CommandParser()
-    # Only register base class commands, not the inventory.
-    command_register.RegisterCommands(tcli_obj, tcli_obj.cli_parser)
-    # Only support commands that are valid when called inline.
-    tcli_obj.cli_parser.InlineOnly()
-
-    # String values can also be copied by reference.
-    # Assigning new value will not impact original in parent.
     tcli_obj.color = self.color
     tcli_obj.color_scheme = self.color_scheme
     tcli_obj.display = self.display
     tcli_obj.filter = self.filter
+    tcli_obj.filter_engine = self.filter_engine
     tcli_obj.linewrap = self.linewrap
     tcli_obj.log = self.log
     tcli_obj.logall = self.logall
@@ -277,7 +259,6 @@ class TCLI(object):
     tcli_obj.title_color = self.title_color
     tcli_obj.verbose = self.verbose
     tcli_obj.warning_color = self.warning_color
-
     return tcli_obj
 
   def Motd(self) ->None:
@@ -508,6 +489,7 @@ class TCLI(object):
           # to a copy of the  TCLI object with the inline modifiers applied.
           logging.debug('Inline Cmd: %s.', inline_commands)
           inline_tcli = copy.copy(self)
+          inline_tcli.cli_parser.InlineOnly()
           for cmd in inline_commands:
             inline_tcli.TCLICmd(cmd)
           inline_tcli.ParseCommands(command_prefix)
