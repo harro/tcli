@@ -109,18 +109,18 @@ To use in your environment TCLI needs to be configured to retrieve a list of dev
 is used to manage the site specific inventory. And integrated to call your device accessor system
 (or to scrape the output files that it produces).
 
-Your site customisations are made to a new file that implements a child class of ```Inventory```.
-This class is declared in ```inventory.py```. so import, inherit, and override the
+Your site customisations are made to a new file that implements a child class of ``Inventory``.
+This class is declared in ``inventory.py``. So import, inherit, and override the
 [methods](https://github.com/search?q=repo%3Aharro%2Ftcli+NotImplementedError&type=code)
-```_FetchDevices``` and ```SendRequests``` of the parent ```Inventory``` class in your file.
+``_FetchDevices`` and ``SendRequests`` of the parent ``Inventory`` class in your file.
 
 A "canned" example is included
-[```inventory_csv.py```](https://github.com/harro/tcli/blob/master/tcli/inventory_csv.py) for illustration.
+[``inventory_csv.py``](https://github.com/harro/tcli/blob/master/tcli/inventory_csv.py) for illustration.
 
 Your substitute module is imported by the command line flag _'inventory_file'_.
 The module is expected to be located in the tcli directory.
 
-Contributors are welcome to add various ```inventory_<accessor>.py``` files for popular open source
+Contributors are welcome to add various ``inventory_<accessor>.py`` files for popular open source
 device accessor methods.
 
 The structured format for device output is enabled via [TextFSM](https://github.com/google/textfsm).
