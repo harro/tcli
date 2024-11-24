@@ -81,9 +81,9 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
 
       mock_tcli_out.assert_has_calls([
           mock.call("Invalid escape command 'bogus'.", msgtype='warning'),
-          mock.call(HEADER % 'a', msgtype='title'),
+          mock.call(HEADER % 'a', 'title'),
           mock.call(OUTPUT_A),
-          mock.call(HEADER % 'b', msgtype='title'),
+          mock.call(HEADER % 'b', 'title'),
           mock.call(OUTPUT_B)])
 
     self.assertEqual('raw', tcli_obj.display)
@@ -97,9 +97,9 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
       tcli_obj = tcli.TCLI(interactive=False, commands='cat a\ncat b')
 
       mock_tcli_out.assert_has_calls([
-          mock.call(HEADER % 'a', msgtype='title'),
+          mock.call(HEADER % 'a', 'title'),
           mock.call(OUTPUT_A),
-          mock.call(HEADER % 'b', msgtype='title'),
+          mock.call(HEADER % 'b', 'title'),
           mock.call(OUTPUT_B)])
 
     # RC script ignored.

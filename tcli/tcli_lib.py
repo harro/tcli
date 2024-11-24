@@ -621,26 +621,22 @@ class TCLI(object):
 
     # Do nothing with raw output other than tagging
     # Which device/command generated it.
-    self._Print(
-      '#!# %s:%s #!#' % (response.device_name, response.command),
-      msgtype='title')
+    self._Header(f'{response.device_name}:{response.command}')
     self._Print(self._Pipe(response.data, pipe=pipe))
 
   def _FormatErrorResponse(self, response:inventory.CmdResponse) -> None:
     """Formatted error derived from response."""
 
-    self._Print('#!# %s:%s #!#\n%s' %
-      (response.device_name, response.command, response.error),
-      msgtype='warning')
+    self._Header(f'{response.device_name}:{response.command}', 'warning')
+    self._Print(response.error, 'warning')
 
   def _FormatResponse(self, response_uid_list:list[int], pipe:str='') -> None:
     """Display the results from a list of responses."""
 
     # Filter required if display format is not 'raw'.
     if self.display != 'raw' and not self.filter:
-      self._Print(
-        'No filter set, cannot display in %s format' % repr(self.display),
-        msgtype='warning')
+      self._Print(f"No filter set, cannot display in '{self.display}' format",
+                  'warning')
       return
 
     result = {}
@@ -704,7 +700,7 @@ class TCLI(object):
       # Is this the first line.
       if not result:
         # Print header line for this command response.
-        self._Print('#!# %s #!#' % response.command, msgtype='title')
+        self._Header(response.command)
 
       if str(self.filter_engine.header) not in result:
         # Copy initial command result, then append the rest as rows.
@@ -744,6 +740,10 @@ class TCLI(object):
       # Problem with parsing of display command if we reach here.
       raise TcliCmdError('Unsupported display format: %s.' %
                          repr(self.display))
+
+  def _Header(self, header:str='', msgtype:str='title') -> None:
+    """Formats header string."""
+    self._Print(f'#!# {header} #!#', msgtype)
 
   def _Pipe(self, output:str, pipe:str='') -> str|None:
     """Creates pipe for filtering command output."""

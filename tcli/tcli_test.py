@@ -313,7 +313,7 @@ class UnitTestTCLI(unittest.TestCase):
               device_name='device1', command='time of day',
               data='a random\nmulti line\nstring.', error='', uid=''))
       mock_print.assert_has_calls([
-          mock.call('#!# device1:time of day #!#', msgtype='title'),
+          mock.call('#!# device1:time of day #!#', 'title'),
           mock.call('a random\nmulti line\nstring.')
       ])
 
@@ -340,7 +340,7 @@ class UnitTestTCLI(unittest.TestCase):
       # Single entry, raw output.
       self.tcli_obj._FormatResponse(['beef'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('hello world\n')
       ])
 
@@ -349,9 +349,9 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'feed'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('hello world\n'),
-          mock.call(header2, msgtype='title'),
+          mock.call(header2, 'title'),
           mock.call('quick fox\n')
       ])
 
@@ -359,9 +359,9 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'beef'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('hello world\n'),
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('hello world\n')
       ])
 
@@ -410,7 +410,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\ndevice_1, hello, world\n')
       ])
 
@@ -427,7 +427,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['beef', 'feed'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\n'
                     'device_1, hello, world\n'
                     'device_2, quick, fox\n')
@@ -446,7 +446,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n')
       ])
@@ -464,7 +464,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed', 'deed'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n'
                     'device_3, jumped, over\n')
@@ -474,7 +474,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['dead', 'dead'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColDa, ColDb\n'
                     'device_4, the, wall\n'
                     'device_4, the, wall\n')
@@ -484,7 +484,7 @@ class UnitTestTCLI(unittest.TestCase):
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatResponse(['deed', 'dead', 'deed', 'dead'])
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
                     'device_3, jumped, over\n'
                     'device_3, jumped, over\n'),
@@ -508,7 +508,7 @@ class UnitTestTCLI(unittest.TestCase):
       self.tcli_obj._FormatResponse(['beef'])
       # Column header, nvp label and data rows.
       mock_print.assert_has_calls([
-          mock.call(header, msgtype='title'),
+          mock.call(header, 'title'),
           mock.call(
               nvp_label + '\n' +
               'device_1.ColAa hello\n'
