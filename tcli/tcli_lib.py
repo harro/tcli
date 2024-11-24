@@ -237,8 +237,12 @@ class TCLI(object):
       self.ParseCommands(commands)
 
   def __copy__(self) -> "TCLI":
-    """Copies attributes from self to new tcli child object."""
-    tcli_obj = TCLI(inventory=self.inventory)
+    """Copies attributes from self to new tcli object."""
+    # Create new instance with existing inventory.
+    tcli_obj = type(self)(inventory=self.inventory)
+    #TODO(harro): Why does this break ParseCommands?
+    # tcli_obj.__dict__.update(self.__dict__)
+  
     tcli_obj.buffers = self.buffers
     tcli_obj.cmd_response = self.cmd_response
     tcli_obj.color = self.color
@@ -453,18 +457,13 @@ class TCLI(object):
       commands: String of newline separated commands.
     """
 
-    def _FlushCommands(command_list:list[str]) -> None:
-      """Submit pending commands and clear list."""
-
-      if command_list:
-        # Flush all accumulated commands beforehand.
-        # This is necessary so that recording and logging are correct.
-        logging.debug('Flush commands: %s', command_list)
-        # Pass copy rather than reference to list.
-        self.CmdRequests(self.device_list, command_list[:])
-        # Ensure list is deleted.
-        command_list[:] = []
-
+    def _Flush(devices, commands: list[str]) -> None:
+      """Flush any pending device commands for the backend."""
+      if not commands: return
+      logging.debug('Flush commands: %s', commands)
+      # Pass copy rather than reference to list.
+      self.CmdRequests(devices, commands[:])
+  
     # Split commands into list on newlines. Build new command_list.
     command_list = []
     for command in commands.split('\n'):
@@ -474,17 +473,19 @@ class TCLI(object):
 
       # TCLI commands.
       if command.startswith(SLASH):
-        _FlushCommands(command_list)
-        # Remove command prefix and submit to TCLI command interpreter.
+        _Flush(self.device_list, command_list)
+        command_list = []
+        # Remove command prefix and submit current command to TCLI interpreter.
         self.TCLICmd(command[1 :])
       else:
-        # Backend commands.
-        # Look for inline commands.
+        # Backend commands for sending to devices.
+        # Look for inline TCLI commands.
         (command_prefix, inline_commands
          ) = self.cli_parser.ExtractInlineCommands(command)
         if inline_commands:
           # Send any commands we have collecte so far.
-          _FlushCommands(command_list)
+          _Flush(self.device_list, command_list)
+          command_list = []
           # Commands with inline display modifiers are submitted
           # to a copy of the  TCLI object with the inline modifiers applied.
           logging.debug('Inline Cmd: %s.', inline_commands)
@@ -497,7 +498,7 @@ class TCLI(object):
           # Otherwise continue collecting multiple commands to send at once.
           command_list.append(command)
 
-    _FlushCommands(command_list)
+    _Flush(self.device_list, command_list)
 
   def Callback(self, response:inventory.CmdResponse) -> None:
     """Async callback for device command."""
