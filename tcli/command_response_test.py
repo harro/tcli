@@ -161,15 +161,13 @@ class UnitTestCmdResponse(unittest.TestCase):
 
     self.assertFalse(self.cmd_response._current_row)
     self.assertFalse(self.cmd_response.done.is_set())
-    self.assertEqual(([3, 4], 'boohoo'),
-                     self.cmd_response.GetRow())
+    self.assertEqual(self.cmd_response.GetRow(), ([3, 4], 'boohoo'))
     self.assertFalse(self.cmd_response.done.is_set())
-    self.assertEqual(([1, 2], 'testing'),
-                     self.cmd_response.GetRow())
+    self.assertEqual(self.cmd_response.GetRow(), ([1, 2], 'testing'))
     self.assertFalse(self.cmd_response.done.is_set())
-    self.assertEqual(2, self.cmd_response._current_row)
+    self.assertEqual(self.cmd_response._current_row, 2)
     self.assertEqual(self.cmd_response.GetRow(), ([], ''))
-    self.assertEqual(2, self.cmd_response._current_row)
+    self.assertEqual(self.cmd_response._current_row, 2)
     self.assertTrue(self.cmd_response.done.is_set())
 
 

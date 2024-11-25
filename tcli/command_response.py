@@ -148,34 +148,31 @@ class CmdResponse(object):
       List is empty if the current row is not ready.
     """
 
-    if self._current_row not in self._row_response:
-      # Reading off the end of the rows, either we've just started a new row
-      # or we are off the bottom of the table and no more rows are needed.
-      logging.debug('GetRow: Current row not in responses.')
-      # Triggers the done flag if we already have all responses.
-      if len(self._results) == self._response_count:
-        logging.debug('GetRow: All results returned.')
-        self.done.set()
-      # Otherwise we are still waiting for our first responses for this row.
-      return ([], '')
-
     # Have we received all responses for the current row.
-    if (len(self._row_response[self._current_row]) ==
+    if (self._current_row in self._row_response and
+        len(self._row_response[self._current_row]) ==
         len(self._row_index[self._current_row])):
-      logging.info('Row %s was complete (size %s) and returned.',
-                   self._current_row,
-                   len(self._row_response[self._current_row]))
+      logging.info(
+        'Row %s was complete (size %s) and returned.',
+        self._current_row, len(self._row_response[self._current_row]))
       # Assemble the results for the row and any corresponding pipe content.
-      result = (self._row_response[self._current_row],
-                self._pipe[self._current_row])
+      result = (
+        self._row_response[self._current_row], self._pipe[self._current_row])
       # Advance the current row.
       self._current_row += 1
       # Reset the progress indicator as there is results to display.
       if self._progressbar is not None:
         self._progressbar.close()
+      # return the row.
       return result
+    
+    # Have we returned the last row of results, if so then we are done?
+    if len(self._results) == self._response_count:
+      logging.debug('GetRow: All results returned.')
+      self.done.set()
+  
+    # Either still waiting on entries in current row, or we're done.
     return ([], '')
-    logging.debug('Current row incomplete.')
 
   def GetResponse(self, uid:int) -> inventory.Response|None:
     """Returns response object for a given uid."""
@@ -183,8 +180,8 @@ class CmdResponse(object):
     try:
       return self._results[uid]
     except KeyError:
-      logging.error('Invalid UID: %s, possible values: %s.',
-                    uid, str(self._results))
+      logging.error(
+        'Invalid UID: %s, possible values: %s.', uid, str(self._results))
 
   def StartIndicator(self, message:str=PROGRESS_MESSAGE) -> None:
     """Starts a progress indicator to indicate receiving of requests."""
