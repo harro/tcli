@@ -506,18 +506,18 @@ class TCLI(object):
 
     with self._lock:
       logging.debug("Callback for '%s'.", response.uid)
-      # Convert from inventory specific format to a more generic dictionary.
+      # Take a response from inventory and pass it to the command_response.
       self.cmd_response.AddResponse(response)
 
       # If we have all responses for current row/command then display.
-      row = self.cmd_response.GetRow()
+      (row, pipe) = self.cmd_response.GetRow()
       while row:
-        self._FormatResponse(row[0], row[1])
-        row = self.cmd_response.GetRow()
+        self._FormatRow(row, pipe)
+        (row, pipe) = self.cmd_response.GetRow()
 
   def CmdRequests(self, device_list:list[str], command_list:list[str],
                   explicit_cmd:bool=False) -> None:
-    """Submits command list to devices and receives responses.
+    """Submits command list to devices and waits on responses.
 
     Args:
       device_list: List of strings, each string being a devicename
@@ -525,6 +525,7 @@ class TCLI(object):
       explicit_cmd: Bool, if commands submitted via '/command' or not
     """
 
+    # Log commands, even if nothing to do, dry run, or we are in safe mode.
     for buf in (self.record, self.recordall, self.log, self.logall):
       self.buffers.Append(buf, '\n'.join(command_list))
 
@@ -537,8 +538,8 @@ class TCLI(object):
       return
 
     if FLAGS.dry_run:
-      # Batch mode with dry_run set, then show what commands and devices would
-      # have been sent and return.
+      # With dry_run set, we show what devices are targets, and what commands
+      # would have been sent to them and return.
       self._Print('Send Commands: ', msgtype='title')
       self._Print('  ' + '\r  '.join(command_list))
       self._Print('To Targets: ', msgtype='title')
@@ -548,21 +549,21 @@ class TCLI(object):
     # Response requests.
     requests = []
     self.cmd_response = command_response.CmdResponse()
-    # Responses from hosts for a single command are known as a 'row'.
-    for cmd_row, command in enumerate(command_list):
+    # The set of responses for a given command is known as a 'row'.
+    for cmd_row_id, command in enumerate(command_list):
       # Split off client side pipe command.
       (command, pipe) = self.cli_parser.ExtractPipe(command)
       logging.debug("Extracted command and pipe: '%s' & '%s'.", command, pipe)
-      self.cmd_response.SetCommandRow(cmd_row, pipe)
+      self.cmd_response.InitCommandRow(cmd_row_id, pipe)
 
       # Create command requests.
-      for host in device_list:
-        req = inventory.CmdRequest(host, command, self.mode)
+      for device in device_list:
+        req = inventory.CmdRequest(device, command, self.mode)
         # Track the order that commands are submitted.
         # Responses are received in any order and
         # we use the row ID to reassemble.
         logging.debug('UID: %s.', req.uid)
-        self.cmd_response.SetRequest(cmd_row, req.uid)
+        self.cmd_response.SetRequest(cmd_row_id, req.uid)
         requests.append(req)
 
     # Submit command request to inventory manager for each host.
@@ -572,10 +573,10 @@ class TCLI(object):
     self.inventory.SendRequests(requests_callbacks, deadline=self.timeout)
 
     # Wait for all callbacks to complete.
-    # We add a 5 seconds pad to allow requests to timeout and be added to the
-    # results before cleaning up any outstanding entries and reporting results
+    # We add a 5 seconds pad to allow requests to timeout and be included in the
+    # results before cleanup and reporting results.
     if not self.cmd_response.done.wait(self.timeout +5):
-      # If we timeout then clear pending responses.
+      # If we had a timeout then clear pending responses.
       self.cmd_response = command_response.CmdResponse()
       self._Print('Timeout: timer exceeded while waiting for responses.',
                   msgtype='warning')
@@ -631,8 +632,8 @@ class TCLI(object):
     self._Header(f'{response.device_name}:{response.command}', 'warning')
     self._Print(response.error, 'warning')
 
-  def _FormatResponse(self, response_uid_list:list[int], pipe:str='') -> None:
-    """Display the results from a list of responses."""
+  def _FormatRow(self, response_uid_list:list[int], pipe:str='') -> None:
+    """Display the results from a list of responses (a row)."""
 
     # Filter required if display format is not 'raw'.
     if self.display != 'raw' and not self.filter:

@@ -79,7 +79,7 @@ class CmdResponse(object):
     self._progressbar = None
 
   @Synchronized # type: ignore
-  def SetCommandRow(self, command_row:int, pipe:str) -> None:
+  def InitCommandRow(self, command_row:int, pipe:str) -> None:
     """Initialise data for a new row, each row corresponds to a command.
 
     Args:
@@ -139,13 +139,13 @@ class CmdResponse(object):
     return True
 
   @Synchronized # type: ignore
-  def GetRow(self) -> tuple[list[int], str]|None:
+  def GetRow(self) -> tuple[list[int], str]:
     """Return current row if fully populated with results.
 
     Returns:
       Tuple: List of responses of the row to display and a string of the
       commandline pipe to pass the responses through before displaying.
-      None: if the current row is not ready.
+      List is empty if the current row is not ready.
     """
 
     if self._current_row not in self._row_response:
@@ -157,7 +157,7 @@ class CmdResponse(object):
         logging.debug('GetRow: All results returned.')
         self.done.set()
       # Otherwise we are still waiting for our first responses for this row.
-      return
+      return ([], '')
 
     # Have we received all responses for the current row.
     if (len(self._row_response[self._current_row]) ==
@@ -174,6 +174,7 @@ class CmdResponse(object):
       if self._progressbar is not None:
         self._progressbar.close()
       return result
+    return ([], '')
     logging.debug('Current row incomplete.')
 
   def GetResponse(self, uid:int) -> inventory.Response|None:

@@ -32,20 +32,6 @@ APPEND = tcli.command_parser.APPEND
 FLAGS = flags.FLAGS
 
 
-class FakeDev(object):
-  """Fake device as received from Chipmunk."""
-
-  def __init__(self, vendor, realm):
-    self._vendor = vendor
-    self._realm = realm
-
-  def vendor(self):  # pylint: disable=g-bad-name
-    return self._vendor
-
-  def realm(self):  # pylint: disable=g-bad-name
-    return self._realm
-
-
 class FakeLock(object):
   """Fake lock with locking conflict indicator."""
 
@@ -89,27 +75,6 @@ class FakeEvent(object):
     pass
 
 
-class FakeCmdResponse(tcli.command_response.CmdResponse):
-  """Fake CmdResponse object."""
-
-  _lock = FakeLock()
-  done = FakeEvent()
-
-  def __init__(self, uid='', device_name='', command='', data='', error=''):
-    super(FakeCmdResponse, self).__init__()
-    if uid:
-      self.uid = uid
-
-  def StartIndicator(self, message=''):
-    pass
-
-
-class FakeActionRequest(object):
-
-  def __init__(self, uid):
-    self.uid = uid
-
-
 class UnitTestTCLI(unittest.TestCase):
   """Tests the TCLI class."""
 
@@ -150,8 +115,6 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.inventory.devices = {                                         # type: ignore
       'a': dev_attr(), 'b': dev_attr(), 'c': dev_attr()}   
     self.tcli_obj.inventory.targets = ''                                        # type: ignore
-    self.tcli_obj.inventory.CreateCmdRequest.return_value = FakeCmdResponse(    # type: ignore
-        '123')
     # type: ignore
     self.tcli_obj._Print = mock.Mock()
 
@@ -252,63 +215,66 @@ class UnitTestTCLI(unittest.TestCase):
   def testCallback(self):
     """Tests async callback."""
 
-    self.tcli_obj._FormatResponse = mock.Mock()
+    self.tcli_obj._FormatRow = mock.Mock()
 
-    self.tcli_obj.Callback(FakeActionRequest('non_exist_uid'))
+    self.tcli_obj.Callback(
+      inventory.Response(99, "device_name", "command", "data", "error"))
     # Test that nonexistant uid trigger early return.
     self.assertFalse(self.tcli_obj.cmd_response._response_count)
 
-    self.tcli_obj.cmd_response.SetCommandRow(0, '')
-    self.tcli_obj.cmd_response.SetCommandRow(1, '')
+    self.tcli_obj.cmd_response.InitCommandRow(0, '')
+    self.tcli_obj.cmd_response.InitCommandRow(1, '')
 
-    self.tcli_obj.cmd_response.SetRequest(0, 'valid_uid')
-    self.tcli_obj.cmd_response.SetRequest(0, 'another_valid_uid')
-    self.tcli_obj.cmd_response.SetRequest(1, '2nd_row_uid_a')
-    self.tcli_obj.cmd_response.SetRequest(1, '2nd_row_uid_b')
+    self.tcli_obj.cmd_response.SetRequest(0, 1)
+    self.tcli_obj.cmd_response.SetRequest(0, 2)
+    self.tcli_obj.cmd_response.SetRequest(1, 3)
+    self.tcli_obj.cmd_response.SetRequest(1, 4)
     self.tcli_obj.cmd_response._row_response[0] = []
 
-    self.tcli_obj.inventory.device_list = set(['host_a', 'host_b'])             # type: ignore
+    self.tcli_obj.inventory.device_list = set(['device_a', 'device_b'])             # type: ignore
     self.tcli_obj.command_list = ['cat alpha', 'cat beta']                      # type: ignore
 
     # Call with valid uid and check response count increments.
-    self.tcli_obj.Callback(FakeActionRequest('valid_uid'))
+    self.tcli_obj.Callback(
+      inventory.Response(1, 'device_a', 'cat alpha', 'data', 'error'))
 
     self.assertTrue(self.tcli_obj.cmd_response._response_count)
-    self.assertEqual(['valid_uid'], self.tcli_obj.cmd_response._row_response[0])
+    self.assertEqual(self.tcli_obj.cmd_response._row_response[0], [1])
     # Should still point at first (0) row.
     self.assertFalse(self.tcli_obj.cmd_response._current_row)
 
     # Second call for last argument of first row.
-    self.tcli_obj.Callback(FakeActionRequest('another_valid_uid'))
+    self.tcli_obj.Callback(
+      inventory.Response(2, 'device_b', 'cat alpha', 'data', 'error'))
 
-    self.assertEqual(['valid_uid', 'another_valid_uid'],
-                     self.tcli_obj.cmd_response._row_response[0])
+    self.assertEqual(self.tcli_obj.cmd_response._row_response[0], [1, 2])
     self.assertFalse(self.tcli_obj.cmd_response._row_response[1])
     # Should point at next row (1).
-    self.assertEqual(1, self.tcli_obj.cmd_response._current_row)
+    self.assertEqual(self.tcli_obj.cmd_response._current_row, 1)
 
     self.tcli_obj.cmd_response._current_row = 0
     self.tcli_obj.cmd_response._response_count = 0
     self.tcli_obj.cmd_response._row_response[0] = []
 
     # Test populating the second row before the first.
-    self.tcli_obj.Callback(FakeActionRequest('2nd_row_uid_b'))
-    self.tcli_obj.Callback(FakeActionRequest('2nd_row_uid_a'))
+    self.tcli_obj.Callback(
+      inventory.Response(4, 'device_b', 'cat beta', 'data', 'error'))
+    self.tcli_obj.Callback(
+      inventory.Response(3, 'device_a', 'cat beta', 'data', 'error'))
 
     self.assertFalse(self.tcli_obj.cmd_response._row_response[0])
-    self.assertEqual(['2nd_row_uid_b', '2nd_row_uid_a'],
-                     self.tcli_obj.cmd_response._row_response[1])
+    self.assertEqual(self.tcli_obj.cmd_response._row_response[1], [4, 3])
 
     # Once first row gets fully pop'd then both should be reported and cleared.
-    self.tcli_obj.Callback(FakeActionRequest('valid_uid'))
-    self.tcli_obj.Callback(FakeActionRequest('another_valid_uid'))
+    self.tcli_obj.Callback(
+      inventory.Response(1, 'device_a', 'cat alpha', 'data', 'error'))
+    self.tcli_obj.Callback(
+      inventory.Response(2, 'device_b', 'cat alpha', 'data', 'error'))
 
-    self.assertEqual(['valid_uid', 'another_valid_uid'],
-                     self.tcli_obj.cmd_response._row_response[0])
-    self.assertEqual(['2nd_row_uid_b', '2nd_row_uid_a'],
-                     self.tcli_obj.cmd_response._row_response[1])
+    self.assertEqual(self.tcli_obj.cmd_response._row_response[0], [1, 2])
+    self.assertEqual(self.tcli_obj.cmd_response._row_response[1], [4, 3])
     # Should point at next row (2).
-    self.assertEqual(2, self.tcli_obj.cmd_response._current_row)
+    self.assertEqual(self.tcli_obj.cmd_response._current_row, 2)
 
   def testFormatRaw(self):
     """Test display of raw output."""
@@ -344,7 +310,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Single entry, raw output.
-      self.tcli_obj._FormatResponse([1])
+      self.tcli_obj._FormatRow([1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n')
@@ -353,7 +319,7 @@ class UnitTestTCLI(unittest.TestCase):
     header2 = '#!# %s:%s #!#' % ('device_2', 'c alpha')
     # Multiple ActionRequest objects, differing content.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([1, 2])
+      self.tcli_obj._FormatRow([1, 2])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n'),
@@ -363,7 +329,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple action request objects, same content.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([1, 1])
+      self.tcli_obj._FormatRow([1, 1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n'),
@@ -414,7 +380,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Single entry, csv format.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([1])
+      self.tcli_obj._FormatRow([1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\ndevice_1, hello, world\n')
@@ -431,7 +397,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Multiple entries.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([1, 2])
+      self.tcli_obj._FormatRow([1, 2])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\n'
@@ -450,7 +416,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# cat epsilon #!#'
     # Single entry - by Vendor.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([3])
+      self.tcli_obj._FormatRow([3])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -468,7 +434,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# cat epsilon #!#'
     # Multiple entry - Vendor 'Asterix'.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([3, 3])
+      self.tcli_obj._FormatRow([3, 3])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -478,7 +444,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple entry - Vendor 'Obelix'.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([4, 4])
+      self.tcli_obj._FormatRow([4, 4])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColDa, ColDb\n'
@@ -488,7 +454,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple entry - Mixed vendors.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([3, 4, 3, 4])
+      self.tcli_obj._FormatRow([3, 4, 3, 4])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -511,7 +477,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Single entry, nvp format.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse([1])
+      self.tcli_obj._FormatRow([1])
       # Column header, nvp label and data rows.
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
@@ -529,7 +495,7 @@ class UnitTestTCLI(unittest.TestCase):
     tcli.terminal.TerminalSize = lambda: (24, 10)
     with mock.patch.object(self.tcli_obj, '_Print') as mock_warn:
       # Displays warning if width too narrow.
-      self.tcli_obj._FormatResponse([1])
+      self.tcli_obj._FormatRow([1])
       mock_warn.assert_called_once()
 
   def testColor(self):

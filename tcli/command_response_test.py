@@ -84,8 +84,8 @@ class UnitTestCmdResponse(unittest.TestCase):
     """Tests SetCommandRow method."""
 
     self.cmd_response._row_index[0] = ['content']
-    self.cmd_response.SetCommandRow(0, 'boohoo')
-    self.cmd_response.SetCommandRow(1, 'testing')
+    self.cmd_response.InitCommandRow(0, 'boohoo')
+    self.cmd_response.InitCommandRow(1, 'testing')
     self.assertFalse(self.cmd_response._row_index[0])
     self.assertEqual([], self.cmd_response._row_index[1])
     self.assertEqual([], self.cmd_response._row_response[1])
@@ -95,8 +95,8 @@ class UnitTestCmdResponse(unittest.TestCase):
   def testSetRequest(self):
     """Tests SetReq method."""
 
-    self.cmd_response.SetCommandRow(0, 'boohoo')
-    self.cmd_response.SetCommandRow(1, 'testing')
+    self.cmd_response.InitCommandRow(0, 'boohoo')
+    self.cmd_response.InitCommandRow(1, 'testing')
 
     self.cmd_response.SetRequest(1, 1)
 
@@ -115,8 +115,8 @@ class UnitTestCmdResponse(unittest.TestCase):
       self.cmd_response.AddResponse(
         inventory.Response(1, 'device_name', 'command', 'data', 'error')))
 
-    self.cmd_response.SetCommandRow(0, 'boohoo')
-    self.cmd_response.SetCommandRow(1, 'testing')
+    self.cmd_response.InitCommandRow(0, 'boohoo')
+    self.cmd_response.InitCommandRow(1, 'testing')
 
     self.cmd_response.SetRequest(1, 1)
     self.cmd_response.SetRequest(1, 2)
@@ -140,15 +140,15 @@ class UnitTestCmdResponse(unittest.TestCase):
   def testGetRow(self):
     """Tests GetRow method."""
 
-    self.cmd_response.SetCommandRow(0, 'boohoo')
-    self.cmd_response.SetCommandRow(1, 'testing')
+    self.cmd_response.InitCommandRow(0, 'boohoo')
+    self.cmd_response.InitCommandRow(1, 'testing')
 
     self.cmd_response.SetRequest(1, 1)
     self.cmd_response.SetRequest(1, 2)
     self.cmd_response.SetRequest(0, 3)
     self.cmd_response.SetRequest(0, 4)
 
-    self.assertFalse(self.cmd_response.GetRow())
+    self.assertEqual(self.cmd_response.GetRow(), ([], ''))
 
     self.cmd_response.AddResponse(
       inventory.Response(1, 'device_name', 'command', 'data', 'error'))
@@ -168,7 +168,7 @@ class UnitTestCmdResponse(unittest.TestCase):
                      self.cmd_response.GetRow())
     self.assertFalse(self.cmd_response.done.is_set())
     self.assertEqual(2, self.cmd_response._current_row)
-    self.assertFalse(self.cmd_response.GetRow())
+    self.assertEqual(self.cmd_response.GetRow(), ([], ''))
     self.assertEqual(2, self.cmd_response._current_row)
     self.assertTrue(self.cmd_response.done.is_set())
 
