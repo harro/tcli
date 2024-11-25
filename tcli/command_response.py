@@ -106,7 +106,7 @@ class CmdResponse(object):
     self._row_index[command_row].append(request_uid)
 
   @Synchronized # type: ignore
-  def AddResponse(self, response:inventory.CmdResponse) -> bool:
+  def AddResponse(self, response:inventory.Response) -> bool:
     """Add response to results table.
 
     Args:
@@ -176,7 +176,7 @@ class CmdResponse(object):
       return result
     logging.debug('Current row incomplete.')
 
-  def GetResponse(self, uid:int) -> inventory.CmdResponse|None:
+  def GetResponse(self, uid:int) -> inventory.Response|None:
     """Returns response object for a given uid."""
 
     try:

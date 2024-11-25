@@ -501,7 +501,7 @@ class TCLI(object):
 
     _Flush(self.device_list, command_list)
 
-  def Callback(self, response:inventory.CmdResponse) -> None:
+  def Callback(self, response:inventory.Response) -> None:
     """Async callback for device command."""
 
     with self._lock:
@@ -617,7 +617,7 @@ class TCLI(object):
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
 
-  def _FormatRaw(self, response:inventory.CmdResponse, pipe:str='') -> None:
+  def _FormatRaw(self, response:inventory.Response, pipe:str='') -> None:
     """Display response in raw format."""
 
     # Do nothing with raw output other than tagging
@@ -625,7 +625,7 @@ class TCLI(object):
     self._Header(f'{response.device_name}:{response.command}')
     self._Print(self._Pipe(response.data, pipe=pipe))
 
-  def _FormatErrorResponse(self, response:inventory.CmdResponse) -> None:
+  def _FormatErrorResponse(self, response:inventory.Response) -> None:
     """Formatted error derived from response."""
 
     self._Header(f'{response.device_name}:{response.command}', 'warning')
@@ -663,8 +663,7 @@ class TCLI(object):
                      'Hostname': response.device_name}
 
       device = self.devices[response.device_name]
-      for attr in self.inventory.attributes:
-
+      for attr in self.inventory.attributes:                                    # type: ignore
         # Some attributes are a list rather than a string, such as flags.
         # These are not supported by Clitable attribute matching
         # and we silently drop them here.
@@ -674,9 +673,9 @@ class TCLI(object):
 
         # The filter index uses capitilised first letter for column names.
         # For some values we capitilise part of the value.
-        if self.inventory.attributes[attr].display_case == 'title':
+        if self.inventory.attributes[attr].display_case == 'title':             # type: ignore
           filter_attr[attr.title()] = getattr(device, attr).title()
-        elif self.inventory.attributes[attr].display_case == 'upper':
+        elif self.inventory.attributes[attr].display_case == 'upper':           # type: ignore
           filter_attr[attr.title()] = getattr(device, attr).upper()
         else:
           filter_attr[attr.title()] = getattr(device, attr)
@@ -995,7 +994,7 @@ class TCLI(object):
     for device_name in self.device_list:
       device = self.devices[device_name]
       attr_list = [device_name]
-      for name in self.inventory.attributes:
+      for name in self.inventory.attributes:                                    # type: ignore
         if name == 'flags': continue
         if not getattr(device, name): continue
         attr_list.append(f'{name.title()}:{str(getattr(device, name)) or ''}')

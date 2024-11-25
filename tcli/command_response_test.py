@@ -16,6 +16,7 @@
 
 import unittest
 from unittest import mock
+from tcli import inventory_base as inventory
 
 from tcli import command_response
 
@@ -97,42 +98,41 @@ class UnitTestCmdResponse(unittest.TestCase):
     self.cmd_response.SetCommandRow(0, 'boohoo')
     self.cmd_response.SetCommandRow(1, 'testing')
 
-    self.cmd_response.SetRequest(1, 'first_uid')
+    self.cmd_response.SetRequest(1, 1)
 
     self.assertEqual([], self.cmd_response._row_index[0])
-    self.assertEqual(1, self.cmd_response._uid_index['first_uid'])
-    self.assertEqual(['first_uid'], self.cmd_response._row_index[1])
-    self.assertCountEqual(['first_uid'], self.cmd_response._results)
+    self.assertEqual(1, self.cmd_response._uid_index[1])
+    self.assertEqual([1], self.cmd_response._row_index[1])
+    self.assertCountEqual([1], self.cmd_response._results)
 
-    self.cmd_response.SetRequest(1, 'second_uid')
-    self.assertEqual(['first_uid', 'second_uid'],
-                     self.cmd_response._row_index[1])
+    self.cmd_response.SetRequest(1, 2)
+    self.assertEqual([1, 2], self.cmd_response._row_index[1])
 
   def testAddResponse(self):
     """Tests AddResponse method."""
 
-    class FakeResponse(object):
-
-      def __init__(self, uid):
-        self.uid = uid or None
-
-    self.assertFalse(self.cmd_response.AddResponse(FakeResponse('first_uid')))
+    self.assertFalse(
+      self.cmd_response.AddResponse(
+        inventory.Response(1, 'device_name', 'command', 'data', 'error')))
 
     self.cmd_response.SetCommandRow(0, 'boohoo')
     self.cmd_response.SetCommandRow(1, 'testing')
 
-    self.cmd_response.SetRequest(1, 'first_uid')
-    self.cmd_response.SetRequest(1, 'second_uid')
+    self.cmd_response.SetRequest(1, 1)
+    self.cmd_response.SetRequest(1, 2)
 
     self.assertFalse(self.cmd_response._response_count)
-    self.assertTrue(self.cmd_response.AddResponse(FakeResponse('first_uid')))
-    self.assertTrue(self.cmd_response._results['first_uid'])
-    self.assertEqual(['first_uid'], self.cmd_response._row_response[1])
+    self.assertTrue(self.cmd_response.AddResponse(
+      inventory.Response(1, 'device_name', 'command', 'data', 'error')))
+    self.assertTrue(self.cmd_response._results[1])
+    self.assertEqual([1], self.cmd_response._row_response[1])
     self.assertEqual(1, self.cmd_response._response_count)
-    self.assertTrue(self.cmd_response.AddResponse(FakeResponse('second_uid')))
-    self.assertFalse(self.cmd_response.AddResponse(FakeResponse('bogus_uid')))
+    self.assertTrue(self.cmd_response.AddResponse(
+      inventory.Response(2, 'device_name', 'command', 'data', 'error')))
+    self.assertFalse(self.cmd_response.AddResponse(
+      inventory.Response(3, 'device_name', 'command', 'data', 'error')))
     self.assertEqual(2, self.cmd_response._response_count)
-    self.assertEqual(['first_uid', 'second_uid'],
+    self.assertEqual([1, 2],
                      self.cmd_response._row_response[1])
     # pylint: disable=g-generic-assert
     self.assertEqual(2, len(self.cmd_response._row_index))
@@ -143,24 +143,28 @@ class UnitTestCmdResponse(unittest.TestCase):
     self.cmd_response.SetCommandRow(0, 'boohoo')
     self.cmd_response.SetCommandRow(1, 'testing')
 
-    self.cmd_response.SetRequest(1, 'first_uid')
-    self.cmd_response.SetRequest(1, 'second_uid')
-    self.cmd_response.SetRequest(0, 'third_uid')
-    self.cmd_response.SetRequest(0, 'forth_uid')
+    self.cmd_response.SetRequest(1, 1)
+    self.cmd_response.SetRequest(1, 2)
+    self.cmd_response.SetRequest(0, 3)
+    self.cmd_response.SetRequest(0, 4)
 
     self.assertFalse(self.cmd_response.GetRow())
 
-    self.cmd_response.AddResponse(FakeCmdResponse('first_uid'))
-    self.cmd_response.AddResponse(FakeCmdResponse('second_uid'))
-    self.cmd_response.AddResponse(FakeCmdResponse('third_uid'))
-    self.cmd_response.AddResponse(FakeCmdResponse('forth_uid'))
+    self.cmd_response.AddResponse(
+      inventory.Response(1, 'device_name', 'command', 'data', 'error'))
+    self.cmd_response.AddResponse(
+      inventory.Response(2, 'device_name', 'command', 'data', 'error'))
+    self.cmd_response.AddResponse(
+      inventory.Response(3, 'device_name', 'command', 'data', 'error'))
+    self.cmd_response.AddResponse(
+      inventory.Response(4, 'device_name', 'command', 'data', 'error'))
 
     self.assertFalse(self.cmd_response._current_row)
     self.assertFalse(self.cmd_response.done.is_set())
-    self.assertEqual((['third_uid', 'forth_uid'], 'boohoo'),
+    self.assertEqual(([3, 4], 'boohoo'),
                      self.cmd_response.GetRow())
     self.assertFalse(self.cmd_response.done.is_set())
-    self.assertEqual((['first_uid', 'second_uid'], 'testing'),
+    self.assertEqual(([1, 2], 'testing'),
                      self.cmd_response.GetRow())
     self.assertFalse(self.cmd_response.done.is_set())
     self.assertEqual(2, self.cmd_response._current_row)

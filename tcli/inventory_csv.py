@@ -54,7 +54,7 @@ from tcli.inventory_base import InventoryError  # pylint: disable=unused-import
 DEVICE_ATTRIBUTES = inventory_base.DEVICE_ATTRIBUTES
 #TODO(harro): Prevent this from being overridden by inventory_base.__init__
 DEVICE_ATTRIBUTES['pop'] = inventory_base.Attribute(
-    'pop', '', None,
+    'pop', '', [],
     '\n    Limit device lists to specific pop/s')
 DEVICE_ATTRIBUTES['realm'] = inventory_base.Attribute(
     'realm', 'lab', ['prod', 'lab'],
@@ -95,7 +95,7 @@ flags.DEFINE_string(
 flags.DEFINE_string('separator', ', ',
                     'String sequence that separates entries in the CSV file.')
 
-CmdResponse = inventory_base.CmdResponse
+CmdResponse = inventory_base.Response
 
 class Inventory(inventory_base.Inventory):
   """CSV Inventory Class.
@@ -223,7 +223,7 @@ class Inventory(inventory_base.Inventory):
       except IOError:
         error = ('Failure to retrieve response from device "%s",'
                  ' for command "%s".' % (request.target, request.command))
-      response = inventory_base.CmdResponse(uid=request.uid,
+      response = inventory_base.Response(uid=request.uid,
                                             device_name=request.target,
                                             command=request.command,
                                             data=data,

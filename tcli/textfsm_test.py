@@ -34,8 +34,10 @@ class UnitTestFSM(unittest.TestCase):
 
     # Explicit default.
     t = textfsm.TextFSM(StringIO(tplt))
-    self.assertIn('Key', t._GetValue('hoo').OptionNames())
-    self.assertNotIn('Key', t._GetValue('boo').OptionNames())
+    self.assertTrue(t._GetValue('hoo'))
+    self.assertIn('Key', t._GetValue('hoo').OptionNames())                      # type: ignore
+    self.assertTrue(t._GetValue('boo'))
+    self.assertNotIn('Key', t._GetValue('boo').OptionNames())                   # type: ignore
 
     tplt = ('Value Required boo (on.)\n'
             'Value Verbose,Key hoo (on.)\n\n'

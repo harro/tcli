@@ -50,7 +50,7 @@ DEVICE_ATTRIBUTES = {}
 DEVICE = None
 
 # Data format of response.
-CmdResponse = collections.namedtuple(
+Response = collections.namedtuple(
     'CmdResponse', ['uid', 'device_name', 'command', 'data', 'error'])
 
 FLAGS = flags.FLAGS
@@ -97,8 +97,8 @@ class Attribute(object):
 
   #TODO(harro): Use getters / setters here an hide internals.
   def __init__(
-      self, name: str, default_value: str, valid_values: list[str] | None,
-      help_str: str, display_case: Case='lower'):
+      self, name:str, default_value: str='', valid_values:list[str]=[],
+      help_str:str='', display_case:Case='lower'):
     self._default = default_value
     self.help_str = help_str
     self.name = name
@@ -492,12 +492,12 @@ class Inventory(object):
       if maxtargets < 0:
         raise ValueError
     except ValueError:
-      raise ValueError(f'Max Targets is a non-cardinal value: "{maxtargets}."')
+      raise ValueError(f"Max Targets is a non-cardinal value: '{args[0]}.'")
 
     self._maxtargets = maxtargets
     return ''
 
-  def _Flatten(self, container:list|tuple) -> typing.Iterator[str]:
+  def _Flatten(self, container:list|tuple|set) -> typing.Iterator[str]:
     """Flattens arbitrarily deeply nested lists."""
 
     for i in container:
@@ -530,19 +530,20 @@ class Inventory(object):
     if filter_name.startswith('x'):
       attribute = filter_name[1 :]
 
+    validate_list: list|set = []
     if attribute == 'targets':
       # Warn user if literal is unknown.
-      validate_list = self.devices
-    elif (attribute in self._attributes and
-          self._attributes[attribute].valid_values):
-      validate_list = self._attributes[attribute].valid_values
-    else:
-      # Without a specific list of valid values, check that at least one
-      # device matches.
-      # TODO(harro): For filter responsiveness reasons we may drop this.
-      validate_list = [getattr(dev, attribute, None)
-                        for dev in self.devices.values()]
-      validate_list = set(self._Flatten(validate_list))
+      validate_list = list(self.devices)
+    elif attribute in self._attributes:
+      if self._attributes[attribute].valid_values:
+        validate_list = self._attributes[attribute].valid_values                # type: ignore
+      else:
+        # Without a specific list of valid values, check that at least one
+        # device matches.
+        # TODO(harro): For filter responsiveness reasons we may drop this.
+        validate_list = [
+          getattr(dev, attribute, None) for dev in self.devices.values()]
+        validate_list = set(self._Flatten(validate_list))
 
     validate_list = [value.lower() for value in validate_list]
 

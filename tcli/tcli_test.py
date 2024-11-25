@@ -144,14 +144,15 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(tcli.inventory, 'Inventory'):
       self.tcli_obj = tcli.TCLI(interactive=False)
-    self.tcli_obj.inventory.device_list = ['a', 'b', 'c']
+    # pylance: ignore
+    self.tcli_obj.inventory.device_list = ['a', 'b', 'c']                       # type: ignore
     dev_attr = collections.namedtuple('dev_attr', [])
-    self.tcli_obj.inventory.devices = {'a': dev_attr(),
-                                       'b': dev_attr(),
-                                       'c': dev_attr()}
-    self.tcli_obj.inventory.targets = ''
-    self.tcli_obj.inventory.CreateCmdRequest.return_value = FakeCmdResponse(
+    self.tcli_obj.inventory.devices = {                                         # type: ignore
+      'a': dev_attr(), 'b': dev_attr(), 'c': dev_attr()}   
+    self.tcli_obj.inventory.targets = ''                                        # type: ignore
+    self.tcli_obj.inventory.CreateCmdRequest.return_value = FakeCmdResponse(    # type: ignore
         '123')
+    # type: ignore
     self.tcli_obj._Print = mock.Mock()
 
     command_register.RegisterCommands(self.tcli_obj, self.tcli_obj.cli_parser)
@@ -266,8 +267,8 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.cmd_response.SetRequest(1, '2nd_row_uid_b')
     self.tcli_obj.cmd_response._row_response[0] = []
 
-    self.tcli_obj.inventory.device_list = set(['host_a', 'host_b'])
-    self.tcli_obj.command_list = ['cat alpha', 'cat beta']
+    self.tcli_obj.inventory.device_list = set(['host_a', 'host_b'])             # type: ignore
+    self.tcli_obj.command_list = ['cat alpha', 'cat beta']                      # type: ignore
 
     # Call with valid uid and check response count increments.
     self.tcli_obj.Callback(FakeActionRequest('valid_uid'))
@@ -314,7 +315,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       self.tcli_obj._FormatRaw(
-          inventory.CmdResponse(
+          inventory.Response(
               device_name='device1', command='time of day',
               data='a random\nmulti line\nstring.', error='', uid=''))
       mock_print.assert_has_calls([
@@ -325,15 +326,15 @@ class UnitTestTCLI(unittest.TestCase):
   def testFormatRawResponse(self):
     """Tests display of raw command results."""
 
-    self.tcli_obj.cmd_response._results['beef'] = inventory.CmdResponse(
-        uid='beef', device_name='device_1', data='hello world\n',
+    self.tcli_obj.cmd_response._results[1] = inventory.Response(
+        uid=1, device_name='device_1', data='hello world\n',
         command='c alpha', error='')
-    self.tcli_obj.cmd_response._results['feed'] = inventory.CmdResponse(
-        uid='feed', device_name='device_2', data='quick fox\n',
+    self.tcli_obj.cmd_response._results[2] = inventory.Response(
+        uid=2, device_name='device_2', data='quick fox\n',
         command='c alpha', error='')
 
     self.tcli_obj.display = 'raw'
-    self.tcli_obj.inventory._devices = {
+    self.tcli_obj.inventory._devices = {                                        # type: ignore
         'device_1': {'Vendor', 'Asterix'},
         'device_2': {'Vendor', 'Asterix'},
     }
@@ -343,7 +344,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Single entry, raw output.
-      self.tcli_obj._FormatResponse(['beef'])
+      self.tcli_obj._FormatResponse([1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n')
@@ -352,7 +353,7 @@ class UnitTestTCLI(unittest.TestCase):
     header2 = '#!# %s:%s #!#' % ('device_2', 'c alpha')
     # Multiple ActionRequest objects, differing content.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['beef', 'feed'])
+      self.tcli_obj._FormatResponse([1, 2])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n'),
@@ -362,7 +363,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple action request objects, same content.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['beef', 'beef'])
+      self.tcli_obj._FormatResponse([1, 1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('hello world\n'),
@@ -373,8 +374,8 @@ class UnitTestTCLI(unittest.TestCase):
   def _CannedResponse(self):      # pylint: disable=invalid-name
     """Setup some canned commands and responses."""
 
-    self.tcli_obj.inventory.attributes = {
-        'vendor': tcli.inventory.inventory_base.Attribute(
+    self.tcli_obj.inventory.attributes = {                                      # type: ignore
+        'vendor': tcli.inventory.inventory_base.Attribute(                      # type: ignore
             'vendor', '', None, '', display_case='title')}
     # Initialise the textfsm engine in TCLI.
     self.tcli_obj.filter = 'default_index'
@@ -382,24 +383,24 @@ class UnitTestTCLI(unittest.TestCase):
                                                     tcli.FLAGS.template_dir)
     self.tcli_obj.display = 'raw'
     dev_attr = collections.namedtuple('dev_attr', ['vendor'])
-    self.tcli_obj.inventory.devices = {
+    self.tcli_obj.inventory.devices = {                                         # type: ignore
         'device_1': dev_attr(vendor='asterix'),
         'device_2': dev_attr(vendor='asterix'),
         'device_3': dev_attr(vendor='asterix'),
         'device_4': dev_attr(vendor='obelix')
     }
 
-    self.tcli_obj.cmd_response._results['beef'] = inventory.CmdResponse(
-        uid='beef', device_name='device_1', error='',
+    self.tcli_obj.cmd_response._results[1] = inventory.Response(
+        uid='1', device_name='device_1', error='',
         command='c alpha', data='hello world\n')
-    self.tcli_obj.cmd_response._results['feed'] = inventory.CmdResponse(
-        uid='feed', device_name='device_2', error='',
+    self.tcli_obj.cmd_response._results[2] = inventory.Response(
+        uid='2', device_name='device_2', error='',
         command='c alpha', data='quick fox\n')
-    self.tcli_obj.cmd_response._results['deed'] = inventory.CmdResponse(
-        uid='deed', device_name='device_3', error='',
+    self.tcli_obj.cmd_response._results[3] = inventory.Response(
+        uid=3, device_name='device_3', error='',
         command='cat epsilon', data='jumped over\n')
-    self.tcli_obj.cmd_response._results['dead'] = inventory.CmdResponse(
-        uid='dead', device_name='device_4', error='',
+    self.tcli_obj.cmd_response._results[4] = inventory.Response(
+        uid=4, device_name='device_4', error='',
         command='cat epsilon', data='the wall\n')
 
   def testFormatResponse(self):
@@ -413,7 +414,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Single entry, csv format.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['beef'])
+      self.tcli_obj._FormatResponse([1])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\ndevice_1, hello, world\n')
@@ -430,7 +431,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Multiple entries.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['beef', 'feed'])
+      self.tcli_obj._FormatResponse([1, 2])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColAa, ColAb\n'
@@ -449,7 +450,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# cat epsilon #!#'
     # Single entry - by Vendor.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['deed'])
+      self.tcli_obj._FormatResponse([3])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -467,7 +468,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# cat epsilon #!#'
     # Multiple entry - Vendor 'Asterix'.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['deed', 'deed'])
+      self.tcli_obj._FormatResponse([3, 3])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -477,7 +478,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple entry - Vendor 'Obelix'.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['dead', 'dead'])
+      self.tcli_obj._FormatResponse([4, 4])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColDa, ColDb\n'
@@ -487,7 +488,7 @@ class UnitTestTCLI(unittest.TestCase):
 
     # Multiple entry - Mixed vendors.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['deed', 'dead', 'deed', 'dead'])
+      self.tcli_obj._FormatResponse([3, 4, 3, 4])
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call('Host, ColCa, ColCb\n'
@@ -510,7 +511,7 @@ class UnitTestTCLI(unittest.TestCase):
     header = '#!# c alpha #!#'
     # Single entry, nvp format.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatResponse(['beef'])
+      self.tcli_obj._FormatResponse([1])
       # Column header, nvp label and data rows.
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
@@ -528,7 +529,7 @@ class UnitTestTCLI(unittest.TestCase):
     tcli.terminal.TerminalSize = lambda: (24, 10)
     with mock.patch.object(self.tcli_obj, '_Print') as mock_warn:
       # Displays warning if width too narrow.
-      self.tcli_obj._FormatResponse(['beef'])
+      self.tcli_obj._FormatResponse([1])
       mock_warn.assert_called_once()
 
   def testColor(self):
@@ -616,10 +617,10 @@ class UnitTestTCLI(unittest.TestCase):
   def testBufferInUse(self):
     """Tests _BufferInUse function."""
     # Ensure logging is clear
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     self.assertFalse(self.tcli_obj._BufferInUse('hello'))
 
@@ -747,8 +748,8 @@ class UnitTestTCLI(unittest.TestCase):
   def testTCLICmd(self):
     """b/2303768 Truncation of characters in /command."""
 
-    self.tcli_obj.inventory.targets = ''
-    self.tcli_obj.inventory.device_list = set()
+    self.tcli_obj.inventory.targets = ''                                        # type: ignore
+    self.tcli_obj.inventory.device_list = set()                                 # type: ignore
     cmd = 'cat bogus'
     with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
       self.tcli_obj.TCLICmd('command %s' % cmd)
@@ -777,15 +778,13 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TCLICmd('filter default_index')
     self.assertTrue(self.tcli_obj.filter_engine)
 
-    self.tcli_obj.filter_engine.template_dir = tcli.FLAGS.template_dir
-    self.tcli_obj.filter_engine.ReadIndex('default_index')
+    self.tcli_obj.filter_engine.template_dir = tcli.FLAGS.template_dir          # type: ignore
+    self.tcli_obj.filter_engine.ReadIndex('default_index')                      # type: ignore
 
-    self.tcli_obj.filter_engine.ParseCmd('two words',
-                                         attributes={'Command': 'cat eps',
-                                                     'Vendor': 'Asterix'})
+    self.tcli_obj.filter_engine.ParseCmd(                                       # type: ignore
+      'two words',  attributes={'Command': 'cat eps', 'Vendor': 'Asterix'})
     self.assertEqual(
-        'ColCa, ColCb\ntwo, words\n',
-        self.tcli_obj.filter_engine.table)
+      'ColCa, ColCb\ntwo, words\n', self.tcli_obj.filter_engine.table)          # type: ignore
 
     # Bad filter value.
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
@@ -796,10 +795,10 @@ class UnitTestTCLI(unittest.TestCase):
   def testTildeBufferAsignment(self):
 
     # Ensure logging is clear
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     self.tcli_obj.TCLICmd('record boo')
     self.assertEqual('boo', self.tcli_obj.record)
@@ -824,10 +823,10 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TCLICmd('logstop hoo2')
     self.assertIsNone(self.tcli_obj.logall)
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     self.tcli_obj.TCLICmd('record hello')
     self.tcli_obj.TCLICmd('recordall world')
@@ -838,10 +837,10 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertIsNone(self.tcli_obj.record)
     self.assertEqual('world', self.tcli_obj.recordall)
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     self.tcli_obj.TCLICmd('log hello')
     self.tcli_obj.TCLICmd('logall world')
@@ -849,15 +848,15 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TCLICmd('recordall hello')
     self.assertEqual('hello', self.tcli_obj.log)
     self.assertEqual('world', self.tcli_obj.logall)
-    self.assertIsNone(self.tcli_obj.recordall)
+    self.assertEqual(self.tcli_obj.recordall, '')
     self.tcli_obj.TCLICmd('logstop hello')
     self.assertIsNone(self.tcli_obj.log)
     self.assertEqual('world', self.tcli_obj.logall)
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     # Buffer allocation with append should be the same
     self.tcli_obj.TCLICmd('record{} hello'.format(APPEND))
@@ -869,10 +868,10 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertIsNone(self.tcli_obj.record)
     self.assertEqual('world', self.tcli_obj.recordall)
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     self.tcli_obj.TCLICmd('log{} hello'.format(APPEND))
     self.tcli_obj.TCLICmd('logall{} world'.format(APPEND))
@@ -880,7 +879,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.TCLICmd('recordall{} hello'.format(APPEND))
     self.assertEqual('hello', self.tcli_obj.log)
     self.assertEqual('world', self.tcli_obj.logall)
-    self.assertIsNone(self.tcli_obj.recordall)
+    self.assertEqual(self.tcli_obj.recordall, '')
     self.tcli_obj.TCLICmd('logstop hello')
     self.assertIsNone(self.tcli_obj.log)
     self.assertEqual('world', self.tcli_obj.logall)
@@ -903,7 +902,7 @@ class UnitTestTCLI(unittest.TestCase):
                                    msgtype='warning')
 
     # Record and append.
-    self.tcli_obj.record = None
+    self.tcli_obj.record = ''
     self.tcli_obj.TCLICmd('record{} hello'.format(APPEND))
     self.tcli_obj.ParseCommands('Append test')
     self.tcli_obj.ParseCommands('Append again\non two lines')
@@ -975,9 +974,6 @@ class UnitTestTCLI(unittest.TestCase):
   def testTildeBufferLog(self):
     """Tests logging of commands to a buffer."""
 
-    # A null device list prevents sending of commands to backend.
-    self.tcli_obj.inventory.device_list = []
-
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Record commands but not escape commands.
       self.tcli_obj.TCLICmd('log hello')
@@ -992,10 +988,10 @@ class UnitTestTCLI(unittest.TestCase):
       mock_print.assert_called_once_with("Invalid escape command 'an'.",
                                            msgtype='warning')
 
-    self.tcli_obj.record = None
-    self.tcli_obj.recordall = None
-    self.tcli_obj.logall = None
-    self.tcli_obj.log = None
+    self.tcli_obj.record = ''
+    self.tcli_obj.recordall = ''
+    self.tcli_obj.logall = ''
+    self.tcli_obj.log = ''
 
     # Record both commands and escape commands.
     self.tcli_obj.TCLICmd('logall hello')
@@ -1127,7 +1123,7 @@ class UnitTestTCLI(unittest.TestCase):
     """Tests target expansion."""
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj.inventory.device_list = ['device_a', 'device_b']
+      self.tcli_obj.inventory.device_list = ['device_a', 'device_b']            # type: ignore
       self.tcli_obj.TCLICmd('expandtargets')
       mock_print.assert_called_once_with('device_a,device_b', msgtype='system')
 
