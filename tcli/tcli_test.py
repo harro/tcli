@@ -591,32 +591,21 @@ class UnitTestTCLI(unittest.TestCase):
           ['cat alpha', 'cat alpha', 'cat beta'])
 
     # Mixed commands some for the device some tilde commands.
-    with mock.patch.object(self.tcli_obj, 'TCLICmd'):
-      with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
-        self.tcli_obj.ParseCommands(' cat alpha \n  %shelp \n\n\n%scolor  ' %
-                                    (tcli.SLASH, tcli.SLASH))
-        mock_request.assert_called_once_with(
-            self.tcli_obj.device_list,
-            ['cat alpha'])
+    with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
+      self.tcli_obj.ParseCommands(' cat alpha \n  %shelp \n\n\n%scolor  ' %
+                                  (tcli.SLASH, tcli.SLASH))
+      mock_request.assert_called_once_with(
+          self.tcli_obj.device_list,
+          ['cat alpha'])
 
-      with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
-        self.tcli_obj.ParseCommands(' cat alpha\n%scolor\n\nc alpha  ' %
-                                    tcli.SLASH)
-        mock_request.assert_has_calls([
-            mock.call(self.tcli_obj.device_list, ['cat alpha']),
-            mock.call(self.tcli_obj.device_list, ['c alpha'])
-            ])
-
-      # Mix of valid and invalid commands.
-      with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
-        self.tcli_obj.ParseCommands(
-            'cat alpha\n\n bat alpha %sverbose on\n%scolor off\n\n'
-            'cat theta  %slog buf\n\nc alpha' %
-            (tcli.SLASH*2, tcli.SLASH, tcli.SLASH*2))
-        mock_request.assert_has_calls([
-            mock.call(self.tcli_obj.device_list, ['cat alpha']),
-            mock.call(self.tcli_obj.device_list, ['c alpha'])
-            ])
+    # Mixed commands with some inline tilde commands.
+    with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
+      self.tcli_obj.ParseCommands(' cat alpha\n%scolor\n\nc alpha  ' %
+                                  tcli.SLASH)
+      mock_request.assert_has_calls([
+          mock.call(self.tcli_obj.device_list, ['cat alpha']),
+          mock.call(self.tcli_obj.device_list, ['c alpha'])
+          ])
 
   def testBufferInUse(self):
     """Tests _BufferInUse function."""

@@ -164,15 +164,6 @@ class Inventory(object):
     self._load_lock = threading.Lock()
     self._loaded = threading.Event()
     self._loaded.set()
-    # Devices keyed on device name.
-    # If we have already loaded devices e.g. copy, don't do it again.
-    if not hasattr(self, '_devices'):
-      self._devices: dict = {}
-      # Load device inventory from external source.
-      self.Load()
-    # List of device names.
-    #TODO(harro): Lazy rebuild by assigning None - Maybe a setter is better?
-    self._device_list: list[str] | None = None
     self._filters: dict[str, FilterMatch] = {}
     self._maxtargets: int = FLAGS.maxtargets
 
@@ -191,6 +182,14 @@ class Inventory(object):
       self._inclusions[attr] = ''
       self._exclusions['x' + attr] = ''
       self._attributes[attr] = DEVICE_ATTRIBUTES[attr]
+        # Devices keyed on device name.
+    # If we have already loaded devices e.g. copy, don't do it again.
+    if not hasattr(self, '_devices'):
+      self._devices = {}
+      # Load device inventory from external source.
+      self.Load()
+    # List of device names.
+    self._device_list: list[str] = self._BuildDeviceList()
 
   @property
   def attributes(self) -> dict[str, Attribute]:
@@ -221,8 +220,11 @@ class Inventory(object):
   def device_list(self) -> list[str]:
     """Returns a filtered list of Devices."""
     with self._getter_lock:
+      self._loaded.wait()
       # 'None' means the list needs to be built first.
-      if self._device_list is None: return self._BuildDeviceList()
+      if self._device_list is None:
+        raise InventoryError(
+            'Device inventory data failed to load or no devices found.')
       return self._device_list.copy()
 
   @property
@@ -307,7 +309,7 @@ class Inventory(object):
     for attr in self.inclusions:
       cmd_register.ExecWithDefault(attr)
   
-    for attribute in self.exclusions:
+    for attr in self.exclusions:
       cmd_register.ExecWithDefault(attr)
 
   def SendRequests(
@@ -450,7 +452,7 @@ class Inventory(object):
     if filter_string in ('^', '^$'):
       filters[command_name] = ''
       # Clear device list to trigger re-application of filter.
-      self._device_list = None
+      self._BuildDeviceList()
       return ''
 
     # Appending a new filter string to an existing filter.
@@ -638,6 +640,7 @@ class Inventory(object):
 
     try:
       self._FetchDevices()
+      self._BuildDeviceList()
       logging.debug('Fetching of devices completed.')
     finally:
       self._load_lock.release()
@@ -647,6 +650,8 @@ class Inventory(object):
   def _FetchDevices(self) -> None|NotImplementedError:
     """Fetches Devices from external store ."""
     raise NotImplementedError
+
+
 class FilterMatch(object):
   """Object for filter string decomposition and matching against values."""
 

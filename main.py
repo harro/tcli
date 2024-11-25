@@ -15,7 +15,6 @@
 """Executable for TCLI."""
 
 import importlib
-import logging
 import sys
 from absl import app
 from absl import flags

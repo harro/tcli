@@ -236,34 +236,34 @@ class TCLI(object):
     if commands:
       self.ParseCommands(commands)
 
-  def __copy__(self) -> "TCLI":
-    """Copies attributes from self to new tcli object."""
-    # Create new instance with existing inventory.
-    tcli_obj = type(self)(inventory=self.inventory)
-    #TODO(harro): Why does this break ParseCommands?
-    # tcli_obj.__dict__.update(self.__dict__)
+  # def __copy__(self) -> "TCLI":
+  #   """Copies attributes from self to new tcli object."""
+  #   # Create new instance with existing inventory.
+  #   tcli_obj = type(self)(inventory=self.inventory)
+  #   #TODO(harro): Why does this break ParseCommands?
+  #   # tcli_obj.__dict__.update(self.__dict__)
   
-    tcli_obj.buffers = self.buffers
-    tcli_obj.cmd_response = self.cmd_response
-    tcli_obj.color = self.color
-    tcli_obj.color_scheme = self.color_scheme
-    tcli_obj.display = self.display
-    tcli_obj.filter = self.filter
-    tcli_obj.filter_engine = self.filter_engine
-    tcli_obj.linewrap = self.linewrap
-    tcli_obj.log = self.log
-    tcli_obj.logall = self.logall
-    tcli_obj.mode = self.mode
-    tcli_obj.playback = self.playback
-    tcli_obj.record = self.record
-    tcli_obj.recordall = self.recordall
-    tcli_obj.safemode = self.safemode
-    tcli_obj.system_color = self.system_color
-    tcli_obj.timeout = self.timeout
-    tcli_obj.title_color = self.title_color
-    tcli_obj.verbose = self.verbose
-    tcli_obj.warning_color = self.warning_color
-    return tcli_obj
+  #   tcli_obj.buffers = self.buffers
+  #   tcli_obj.cmd_response = self.cmd_response
+  #   tcli_obj.color = self.color
+  #   tcli_obj.color_scheme = self.color_scheme
+  #   tcli_obj.display = self.display
+  #   tcli_obj.filter = self.filter
+  #   tcli_obj.filter_engine = self.filter_engine
+  #   tcli_obj.linewrap = self.linewrap
+  #   tcli_obj.log = self.log
+  #   tcli_obj.logall = self.logall
+  #   tcli_obj.mode = self.mode
+  #   tcli_obj.playback = self.playback
+  #   tcli_obj.record = self.record
+  #   tcli_obj.recordall = self.recordall
+  #   tcli_obj.safemode = self.safemode
+  #   tcli_obj.system_color = self.system_color
+  #   tcli_obj.timeout = self.timeout
+  #   tcli_obj.title_color = self.title_color
+  #   tcli_obj.verbose = self.verbose
+  #   tcli_obj.warning_color = self.warning_color
+  #   return tcli_obj
 
   def Motd(self) ->None:
     """Display message of the day."""
@@ -493,7 +493,7 @@ class TCLI(object):
           inline_tcli.cli_parser.InlineOnly()
           for cmd in inline_commands:
             inline_tcli.TCLICmd(cmd)
-          inline_tcli.ParseCommands(command_prefix)
+          inline_tcli.CmdRequests(inline_tcli.devices, [command_prefix])
         else:
           # Otherwise continue collecting multiple commands to send at once.
           command_list.append(command)
