@@ -29,7 +29,7 @@ flags.DEFINE_string(
 
     Examples to avoid: telnet, ping, reload.""", short_name='C')
 flags.DEFINE_boolean(
-  'interactive', False,
+  'interactive', True,
   'TCLI runs in interactive mode. This is the default mode if no'
   ' cmds are supplied.\n', short_name='I')
 # Defaults to inventory_csv.py which contains canned data for testing.
