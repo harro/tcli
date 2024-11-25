@@ -110,7 +110,7 @@ class UnitTestTCLIEndToEnd(unittest.TestCase):
     # With inline TCLI commands.
     with mock.patch.object(tcli.TCLI, '_Print') as mock_tcli_out:
       tcli_obj = tcli.TCLI(interactive=False,
-                           commands='cat a //D csv')
+                           commands='/display raw\ncat a //D csv')
 
       mock_tcli_out.assert_has_calls([
           mock.call(HEADER % 'a', 'title'),

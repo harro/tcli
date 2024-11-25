@@ -169,6 +169,11 @@ class UnitTestTCLI(unittest.TestCase):
     tcli.inventory.DEVICE_ATTRIBUTES = self.orig_dev_attr
     return super().tearDown()
 
+  def testInlineOnly(self):
+    """Tests that only inline supported commands are ruin when inline."""
+    #TODO(harro): Add tests here.
+    pass
+
   def testCopy(self):
     # TODO(harro): Tests for extended commands?
     self.tcli_obj.buffers.Append('label', 'content')
@@ -568,8 +573,9 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual('', self.tcli_obj.title_color)
 
   def testParseCommands(self):
-    """Tests that commands destined for are supplied to CmdRequests."""
+    """Tests that commands are supplied to CmdRequests."""
 
+    #TODO(harro): Better tests here.
     with mock.patch.object(self.tcli_obj, 'CmdRequests') as mock_request:
       # Single command.
       self.tcli_obj.ParseCommands('cat alpha')
