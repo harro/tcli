@@ -495,10 +495,10 @@ class UnitTestTCLI(unittest.TestCase):
     # GSH formatted.
     self.tcli_obj.display = 'tbl'
     tcli.terminal.TerminalSize = lambda: (24, 10)
-    with mock.patch.object(self.tcli_obj, '_Print') as mock_warn:
+    with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
       # Displays warning if width too narrow.
       self.tcli_obj._FormatRow([1])
-      mock_warn.assert_called_once()
+      mock_print.assert_called_once()
 
   def testColor(self):
     self.tcli_obj.color = False

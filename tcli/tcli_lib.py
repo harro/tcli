@@ -265,6 +265,9 @@ class TCLI(object):
     tcli_obj.warning_color = self.warning_color
     return tcli_obj
 
+  devices = property(lambda self: self.inventory.devices)
+  device_list = property(lambda self: self.inventory.device_list)
+
   def Motd(self) ->None:
     """Display message of the day."""
     self._Print(MOTD, msgtype='system')
@@ -1176,5 +1179,3 @@ class TCLI(object):
     else:
       print(msg)
 
-  devices = property(lambda self: self.inventory.devices)
-  device_list = property(lambda self: self.inventory.device_list)
