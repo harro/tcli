@@ -37,6 +37,9 @@ OUTPUT_B = ('Host, ColBa, ColBb\n'
             'device_b, FOO, BAR\n')
 
 
+#TODO(harro): Expand tests here to make this an automated UAT.
+
+
 class UnitTestTCLIEndToEnd(unittest.TestCase):
 
   @classmethod

@@ -97,7 +97,6 @@ class Attribute(object):
                            typing.Literal['upper'],
                            typing.Literal['title']]
 
-  #TODO(harro): Use getters / setters here an hide internals.
   def __init__(
       self, name:str, default_value: str='', valid_values:list[str]=[],
       help_str:str='', display_case:Case='lower'):
@@ -177,9 +176,9 @@ class Inventory(object):
     # Filters and exclusions added by this library.
     logging.debug(
       f'Device attributes globally defined: "{DEVICE_ATTRIBUTES}".')
-    #TODO(harro): Compare against reserved words and raise exception if a dup.
+    #TODO(#35): Compare against reserved words and raise exception if a dup.
     for attr in DEVICE_ATTRIBUTES:
-      # TODO(harro): Add support for filtering on flag values.
+      # TODO(#36): Add support for filtering on flag values.
       if attr == 'flags': continue
       self._inclusions[attr] = ''
       self._exclusions['x' + attr] = ''
@@ -366,7 +365,6 @@ class Inventory(object):
     """Returns a command completion list for valid attribute completions."""
 
     # Only complete on a single word, the attribute name.
-    #TODO(harro): Why accept a list if we only support matching the first word?
     if not word_list or len(word_list) > 1:
       return None
 
@@ -414,7 +412,6 @@ class Inventory(object):
       return result
 
     # Update attribute filter/s.
-    # TODO(harro): Can we set multiple attributes here by splitting the list?
     if command_name == 'attributes':
       self._CmdFilter(args[0], args[1 :], append)
     else:
@@ -527,7 +524,7 @@ class Inventory(object):
       Bool The filter string 'arg'.
     """
 
-    #TODO(harro): Add support for regexp validation.
+    #TODO(#37): Add support for regexp validation.
     if not literals: return True
 
     attribute = filter_name

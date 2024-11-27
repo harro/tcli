@@ -25,9 +25,6 @@ from absl import logging
 from tcli import inventory_base as inventory
 
 
-PROGRESS_MESSAGE = '#! Receiving:'
-
-
 class CmdResponse(object):
   """Stores response results and current state for device inventory Callback.
 
@@ -185,8 +182,6 @@ class CmdResponse(object):
       logging.error(
         'Invalid UID: %s, possible values: %s.', uid, str(self._results))
 
-  def StartIndicator(self, message: str = PROGRESS_MESSAGE) -> None:
+  def StartIndicator(self, message: str = '#! Receiving:') -> None:
     """Starts a progress indicator to indicate receiving of requests."""
-
-    # TODO(harro): Display textmessage at outset, or remove.
     self._progressbar = tqdm.tqdm(list(range(len(self._results))), desc=message)

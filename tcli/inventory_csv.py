@@ -54,7 +54,6 @@ from tcli.inventory_base import InventoryError  # pylint: disable=unused-import
 ## Note: Two values will be created for each attribute. The second will be
 ## prefixed with an 'x' to be used for inverse matching (exclusions).
 DEVICE_ATTRIBUTES = inventory_base.DEVICE_ATTRIBUTES
-#TODO(harro): Prevent this from being overridden by inventory_base.__init__
 DEVICE_ATTRIBUTES['pop'] = inventory_base.Attribute(
     'pop', '', [],
     '\n    Limit device lists to specific pop/s')
@@ -68,8 +67,6 @@ DEVICE_ATTRIBUTES['vendor'] = inventory_base.Attribute(
 # Set here if known.
 # In the case here this will be overwritten once the CSV content is known.
 DEVICE = inventory_base.DEVICE
-
-# TODO(harro): Handle the 'flags' attribute and filtering.
 
 ## CHANGEME
 ## To get up and running we use test data. Replace this path with the location
@@ -93,7 +90,7 @@ flags.DEFINE_string(
     'inventory', DEFAULT_CSV_FILE,
     'Location of file containing the CSV list of devices.')
 
-# TODO(harro): Support using a different string for separating flags.
+# TODO(#38): Support using a different string for separating flags.
 flags.DEFINE_string('separator', ', ',
                     'String sequence that separates entries in the CSV file.')
 

@@ -946,7 +946,7 @@ class TCLI(object):
       buf_file.write(content.encode('ascii'))
       # Flush content so editor will see it.
       buf_file.flush()
-    #TODO(harro): Support os.getenv('EDITOR', 'vi').
+    #TODO(#39): Support os.getenv('EDITOR', 'vi').
     #TODO(harro): Maybe catch exceptions here.
     # Open file with vi.
     os.system('vi -Z -n -u NONE -U NONE -- %s' % (buf_file.name))
@@ -1108,9 +1108,9 @@ class TCLI(object):
     except ValueError:
       raise ValueError('Invalid timeout value %s.' % repr(args[0]))
 
-  #TODO(harro): Add flag to disable being able to write to file.
+  #TODO(#40): Add flag to disable/block being able to write to file.
   def _CmdWrite(
-    self, command:str, args:list[str], append:bool) -> str:
+      self, command: str, args: list[str], append: bool) -> str:
     """Writes out buffer content to file."""
 
     content = self.buffers.GetBuffer(args[0])
