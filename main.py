@@ -29,7 +29,7 @@ flags.DEFINE_string(
 
     Examples to avoid: telnet, ping, reload.""", short_name='C')
 flags.DEFINE_boolean(
-  'interactive', True,
+  'interactive', False,
   'TCLI runs in interactive mode. This is the default mode if no'
   ' cmds are supplied.\n', short_name='I')
 # Defaults to inventory_csv.py which contains canned data for testing.
@@ -42,7 +42,9 @@ def main(_):
   # Replace the generic Inventory class with the site specific one.
   tcli.inventory = importlib.import_module(f'tcli.{FLAGS.inventory_file}')
   try:
-    tcli_singleton = tcli.TCLI(FLAGS.interactive, FLAGS.cmds)
+    # If no commands supplied via flags then assume interactive mode.
+    interactive =  FLAGS.interactive or not FLAGS.cmds
+    tcli_singleton = tcli.TCLI(interactive, FLAGS.cmds)
   except (EOFError, tcli.TcliCmdError,
           tcli.inventory.AuthError, tcli.inventory.InventoryError,
           ValueError) as error_message:

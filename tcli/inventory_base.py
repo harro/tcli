@@ -189,11 +189,11 @@ class Inventory(object):
       # Load device inventory from external source.
       self.Load()
     # List of device names.
-    self._device_list: list[str] = self._BuildDeviceList()
+    self._device_list: list[str]|None = None
 
   @property
   def attributes(self) -> dict[str, Attribute]:
-    return self._attributes.copy()
+    return self._attributes
 
   @property
   def devices(self) -> dict[str, typing.NamedTuple]:
@@ -214,26 +214,29 @@ class Inventory(object):
       if not self._devices:
         raise InventoryError(
             'Device inventory data failed to load or no devices found.')
-      return self._devices.copy()
+      return self._devices
 
   @property
   def device_list(self) -> list[str]:
     """Returns a filtered list of Devices."""
     with self._getter_lock:
       self._loaded.wait()
-      # 'None' means the list needs to be built first.
+      # Late binding, so if None then first build the list.
       if self._device_list is None:
-        raise InventoryError(
-            'Device inventory data failed to load or no devices found.')
-      return self._device_list.copy()
+        self._BuildDeviceList()
+        if self._device_list is None:
+          # If still None, then there was an error.
+          raise InventoryError(
+              'Device inventory data failed to load or no devices found.')
+      return self._device_list
 
   @property
   def inclusions(self) -> dict[str, str]:
-    return self._inclusions.copy()
+    return self._inclusions
 
   @property
   def exclusions(self) -> dict[str, str]:
-    return self._exclusions.copy()
+    return self._exclusions
   
   # pylint: disable=protected-access
   targets = property(lambda self: self._inclusions['targets'])
@@ -641,7 +644,6 @@ class Inventory(object):
 
     try:
       self._FetchDevices()
-      self._BuildDeviceList()
       logging.debug('Fetching of devices completed.')
     finally:
       self._load_lock.release()
