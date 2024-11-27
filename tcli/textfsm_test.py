@@ -16,7 +16,9 @@
 
 import unittest
 from io import StringIO    # pylint: disable=g-importing-member
+
 from absl import flags
+
 from tcli.tcli_textfsm import textfsm
 
 

@@ -29,8 +29,10 @@ import collections
 import re
 import threading
 import typing
+
 from absl import flags
 from absl import logging
+
 from tcli.command_parser import APPEND, CommandParser
 
 # Global vars so flags.FLAGS has inventroy intelligence in the main program.
@@ -136,7 +138,7 @@ class CmdRequest(object):
 
   UID = 0    # Each request has an identifier
 
-  def __init__(self, target:str, command:str, mode:str='cli') -> None:
+  def __init__(self, target: str, command: str, mode: str = 'cli') -> None:
     CmdRequest.UID += 1
     self.uid = CmdRequest.UID
     self.target = target
@@ -255,7 +257,7 @@ class Inventory(object):
                                             daemon=True)
     self._devices_thread.start()
 
-  def RegisterCommands(self, cmd_register:CommandParser) -> None:
+  def RegisterCommands(self, cmd_register: CommandParser) -> None:
     """Add module specific command support to TCLI."""
 
     # Register commands common to any inventory source.
@@ -306,7 +308,7 @@ class Inventory(object):
                                    append=True, inline=True, regexp=True,
                                    handler=self._CmdFilter)
 
-  def SetFiltersFromDefaults(self, cmd_register:CommandParser) -> None:
+  def SetFiltersFromDefaults(self, cmd_register: CommandParser) -> None:
     """Set/Reset filters to default values."""
 
     for attr in self.inclusions:
@@ -351,9 +353,9 @@ class Inventory(object):
       # Create paired entries like 'Targets: ..., XTargets: ...'
       display_string.append(
         f'{indent*2}' +
-        self._FormatLabelAndValue(incl, self._inclusions[incl]) +
-        ', ' +
-        self._FormatLabelAndValue(excl, self._exclusions[excl], caps=2)
+        self._FormatLabelAndValue(incl, self._inclusions[incl])
+        + ', '
+        + self._FormatLabelAndValue(excl, self._exclusions[excl], caps=2)
         )
 
     return '\n'.join(display_string) + '\n'
@@ -500,7 +502,7 @@ class Inventory(object):
     self._maxtargets = maxtargets
     return ''
 
-  def _Flatten(self, container:list|tuple|set) -> typing.Iterator[str]:
+  def _Flatten(self, container: list|tuple|set) -> typing.Iterator[str]:
     """Flattens arbitrarily deeply nested lists."""
 
     for i in container:
@@ -510,7 +512,7 @@ class Inventory(object):
       else:
         yield i
 
-  def ValidFilter(self, filter_name:str, literals:list[str]) -> bool:
+  def ValidFilter(self, filter_name: str, literals: list[str]) -> bool:
     """Update inventory filter.
 
     Sets the new value for the filter string. Only called against valid
@@ -554,7 +556,7 @@ class Inventory(object):
     unmatched_literals = set(literals).difference(set(validate_list))
     return False if unmatched_literals else True
 
-  def _FormatLabelAndValue(self, label:str, value:str, caps:int=1) -> str:
+  def _FormatLabelAndValue(self, label: str, value: str, caps: int = 1) -> str:
     """Returns string with titlecase label and corresponding value."""
 
     caps = min(caps, len(label))
@@ -658,7 +660,7 @@ class Inventory(object):
 class FilterMatch(object):
   """Object for filter string decomposition and matching against values."""
 
-  def __init__(self, filter_string:str, ignorecase:bool=True) -> None:
+  def __init__(self, filter_string: str, ignorecase: bool = True) -> None:
     # Literal strings and compiled regexps keyed on attribute name.
     self._Set(filter_string, ignorecase)
 
@@ -666,7 +668,7 @@ class FilterMatch(object):
   def filters(self) -> tuple:
     return (self._literals, self._compiled)
 
-  def _Set(self, filter_string:str, ignore_case:bool) -> None:
+  def _Set(self, filter_string: str, ignore_case: bool) -> None:
     """Assigns values to filters.
 
     Store the literal values and compiled regular expressions in their
@@ -722,7 +724,7 @@ class FilterMatch(object):
 
     return (literal_substrs, re_substrs)
 
-  def Match(self, value:str|list[str]|list[list[str]]) -> bool:
+  def Match(self, value: str|list[str]|list[list[str]]) -> bool:
     """Returns if a value matches the filter."""
 
     # If we have a list of attributes, recurse down to find match.

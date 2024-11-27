@@ -36,8 +36,10 @@ server, which may be one of:
 import collections
 import os
 import typing
+
 from absl import flags
 from absl import logging
+
 from tcli import inventory_base
 from tcli.inventory_base import CmdRequest
 from tcli.inventory_base import AuthError       # pylint: disable=unused-import

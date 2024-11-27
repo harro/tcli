@@ -14,9 +14,7 @@
 """Tests for tcli.inventory_base."""
 
 import collections
-import re
 import unittest
-from unittest import mock
 
 from tcli import inventory_base
 

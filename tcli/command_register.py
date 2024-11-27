@@ -15,6 +15,7 @@
 """Register core TCLI command handlers."""
 
 from absl import flags
+
 from tcli import command_parser
 
 # Values for flags that are an enum.
@@ -62,7 +63,7 @@ flags.DEFINE_integer(
 
 FLAGS = flags.FLAGS
 
-def SetFlagDefaults(cli_parser:command_parser.CommandParser) -> None:
+def SetFlagDefaults(cli_parser: command_parser.CommandParser) -> None:
   """Calls TCLI commands with flags values as the default."""
 
   # Called against each flag declared in this module (only).

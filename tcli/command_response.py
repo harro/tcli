@@ -18,10 +18,12 @@
 """
 
 import threading
+
 import tqdm
 from absl import logging
+
 from tcli import inventory_base as inventory
-from typing import Callable
+
 
 PROGRESS_MESSAGE = '#! Receiving:'
 
@@ -60,7 +62,7 @@ class CmdResponse(object):
 
     def Wrapper(main_obj, *args, **kwargs):
       with main_obj._lock:          # pylint: disable=protected-access
-        return func(main_obj, *args, **kwargs)  # type: ignore
+        return func(main_obj, *args, **kwargs)                                  # type: ignore
     return Wrapper
 
   @Synchronized # type: ignore
@@ -79,7 +81,7 @@ class CmdResponse(object):
     self._progressbar = None
 
   @Synchronized # type: ignore
-  def InitCommandRow(self, command_row:int, pipe:str) -> None:
+  def InitCommandRow(self, command_row: int, pipe: str) -> None:
     """Initialise data for a new row, each row corresponds to a command.
 
     Args:
@@ -93,7 +95,7 @@ class CmdResponse(object):
     self._pipe[command_row] = pipe
 
   @Synchronized # type: ignore
-  def SetRequest(self, command_row:int, request_uid:int) -> None:
+  def SetRequest(self, command_row: int, request_uid: int) -> None:
     """Maps uid returned by inventory class to a row number and result.
 
     Args:
@@ -106,7 +108,7 @@ class CmdResponse(object):
     self._row_index[command_row].append(request_uid)
 
   @Synchronized # type: ignore
-  def AddResponse(self, response:inventory.Response) -> bool:
+  def AddResponse(self, response: inventory.Response) -> bool:
     """Add response to results table.
 
     Args:
@@ -174,7 +176,7 @@ class CmdResponse(object):
     # Either still waiting on entries in current row, or we're done.
     return ([], '')
 
-  def GetResponse(self, uid:int) -> inventory.Response|None:
+  def GetResponse(self, uid: int) -> inventory.Response|None:
     """Returns response object for a given uid."""
 
     try:
@@ -183,7 +185,7 @@ class CmdResponse(object):
       logging.error(
         'Invalid UID: %s, possible values: %s.', uid, str(self._results))
 
-  def StartIndicator(self, message:str=PROGRESS_MESSAGE) -> None:
+  def StartIndicator(self, message: str = PROGRESS_MESSAGE) -> None:
     """Starts a progress indicator to indicate receiving of requests."""
 
     # TODO(harro): Display textmessage at outset, or remove.

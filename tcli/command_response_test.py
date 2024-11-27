@@ -16,8 +16,8 @@
 
 import unittest
 from unittest import mock
-from tcli import inventory_base as inventory
 
+from tcli import inventory_base as inventory
 from tcli import command_response
 
 

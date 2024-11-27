@@ -17,8 +17,9 @@
 import importlib
 import os
 import unittest
-from absl import flags
 from unittest import mock
+
+from absl import flags
 
 from tcli import tcli_lib as tcli
 

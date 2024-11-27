@@ -15,9 +15,8 @@
 """Tests for tcli.inventory_csv."""
 
 import os
-import typing
-import unittest
 from io import StringIO    # pylint: disable=g-importing-member
+import unittest
 from unittest import mock
 
 from tcli import inventory_csv as inventory
@@ -124,8 +123,8 @@ class UnitTestCSVInventory(unittest.TestCase):
     callback.assert_called_with(
       inventory.inventory_base.Response(
         uid=0, device_name=target, command=command, data='',
-        error='Failure to retrieve response from device ' +
-         f'"{target}", for command "{command}".'
+        error='Failure to retrieve response from device '
+        + f'"{target}", for command "{command}".'
       )
     )
 

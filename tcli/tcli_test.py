@@ -19,9 +19,11 @@
 import collections
 import copy
 import os
-from absl import flags
 import unittest
 from unittest import mock
+
+from absl import flags
+
 from tcli import command_register
 from tcli import inventory_base as inventory
 from tcli import tcli_lib as tcli
@@ -482,8 +484,8 @@ class UnitTestTCLI(unittest.TestCase):
       mock_print.assert_has_calls([
           mock.call(header, 'title'),
           mock.call(
-              nvp_label + '\n' +
-              'device_1.ColAa hello\n'
+              nvp_label + '\n'
+              + 'device_1.ColAa hello\n'
               'device_1.ColAb world\n')
       ])
 
