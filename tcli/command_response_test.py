@@ -140,16 +140,21 @@ class UnitTestCmdResponse(unittest.TestCase):
   def testGetRow(self):
     """Tests GetRow method."""
 
+    # Two rows, two commands for devices.
     self.cmd_response.InitCommandRow(0, 'boohoo')
     self.cmd_response.InitCommandRow(1, 'testing')
 
+    # Two devices, so two responses for each of the two rows.
+    # Hence four requet IDs: 1-4.
     self.cmd_response.SetRequest(1, 1)
     self.cmd_response.SetRequest(1, 2)
+    # Responses for the first command have the higher IDs ... just because.
     self.cmd_response.SetRequest(0, 3)
     self.cmd_response.SetRequest(0, 4)
 
     self.assertEqual(self.cmd_response.GetRow(), ([], ''))
 
+    # Responses are added against the request IDs.
     self.cmd_response.AddResponse(
       inventory.Response(1, 'device_name', 'command', 'data', 'error'))
     self.cmd_response.AddResponse(
@@ -161,6 +166,7 @@ class UnitTestCmdResponse(unittest.TestCase):
 
     self.assertFalse(self.cmd_response._current_row)
     self.assertFalse(self.cmd_response.done.is_set())
+    # First row is first command request and the response IDs 3 & 4.
     self.assertEqual(self.cmd_response.GetRow(), ([3, 4], 'boohoo'))
     self.assertFalse(self.cmd_response.done.is_set())
     self.assertEqual(self.cmd_response.GetRow(), ([1, 2], 'testing'))

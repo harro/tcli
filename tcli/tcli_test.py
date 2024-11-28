@@ -198,8 +198,9 @@ class UnitTestTCLI(unittest.TestCase):
         'default_index', template_dir=tcli.FLAGS.template_dir)
     self.tcli_obj._Print = mock.Mock()
 
-    self.assertEqual('show', self.tcli_obj._CmdCompleter('', 0))
-    self.assertEqual('cat', self.tcli_obj._CmdCompleter('', 1))
+    # Completions are alphabetical.
+    self.assertEqual('cat', self.tcli_obj._CmdCompleter('', 0))
+    self.assertEqual('show', self.tcli_obj._CmdCompleter('', 1))
     self.assertIsNone(self.tcli_obj._CmdCompleter('', 2))
 
     self.assertEqual('cat', self.tcli_obj._CmdCompleter('c', 0))
@@ -210,9 +211,17 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual('epsilon', self.tcli_obj._CmdCompleter('c ', 2))
     self.assertIsNone(self.tcli_obj._CmdCompleter('c ', 3))
 
-    self.assertEqual(
-        'alpha', self.tcli_obj._CmdCompleter('c al', 0))
+    self.assertEqual('alpha', self.tcli_obj._CmdCompleter('c al', 0))
     self.assertIsNone(self.tcli_obj._CmdCompleter('c al', 1))
+
+    # Regular expressions appear as valid completions.
+    self.assertEqual('int.+', self.tcli_obj._CmdCompleter('show ', 0))
+    self.assertEqual('brief', self.tcli_obj._CmdCompleter('show int.+ ', 0))
+    # If an argument satisfies a regexp then completions work past that point.
+    self.assertEqual('brief', self.tcli_obj._CmdCompleter('show int01 ', 0))
+    self.assertIsNone(self.tcli_obj._CmdCompleter('show int00 ', 1))
+    self.assertEqual('.+', self.tcli_obj._CmdCompleter('show int01 brief ', 0))
+    self.assertIsNone(self.tcli_obj._CmdCompleter('show int00 brief yes', 1))
 
   def testCallback(self):
     """Tests async callback."""

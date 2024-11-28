@@ -197,7 +197,7 @@ class TCLI(object):
 
     # Async callback.
     self._lock = threading.Lock()
-    self._completer_list = []
+    self._completer_list: list[str] = []
     self.interactive = interactive
     self.inventory = inventory
     self.filter_engine = None
@@ -391,9 +391,22 @@ class TCLI(object):
   def _CmdCompleter(self, full_line: str, state: int) -> str|None:
     """Commandline completion used by readline library."""
 
+
+    def _ScrubToken(token: str) -> str:
+      """Remove nested (...)? from command completion string."""
+      # This could break legitimate regexps but since these are completion
+      # candidates, That breakage is cosmetic.
+      _reg_exp_str = r'\((?P<value>.*)\)\?'
+      clean_token = re.sub(_reg_exp_str, '\g<value>', token)                    # type: ignore
+      # Repeat until all nested (...)? are removed.
+      while token != clean_token:
+        token = clean_token
+        clean_token = re.sub(_reg_exp_str, '\g<value>', clean_token)            # type: ignore
+      return token
+
     # First invocation, so build candidate list and cache for re-use.
     if state == 0:
-      self._completer_list = []
+      _completer_set = set()
       current_word = ''
       line_tokens = []
       word_boundary = False
@@ -405,7 +418,7 @@ class TCLI(object):
       # Remove double spaces etc
       cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
 
-      # Are we part way through typing a word.
+      # Are we part way through typing a word, or a word boundary.
       if cleaned_line and cleaned_line.endswith(' '):
         word_boundary = True
 
@@ -420,34 +433,36 @@ class TCLI(object):
         if not word_boundary and line_tokens:
           current_word = line_tokens.pop()
 
-      # Compare with table of possible commands
+      # Compare with table of possible command matches in filter_engine.
       if self.filter_engine:
         for row in self.filter_engine.index.index:                              # type: ignore
-          # Split the regexp into tokens, re combine only as many as there are
-          # in the line entered so far.
+          # Split the command match into tokens.
           cmd_tokens = row['Command'].split(' ')
           # Does the line match the partial list of tokens.
-          if (line_tokens and
-              re.match(' '.join(cmd_tokens[:len(line_tokens)]), cleaned_line)):
-            # Take token not from end of regexp, but from the Completer command.
-            token = cmd_tokens[len(line_tokens)]
-          elif not line_tokens:
+          if not line_tokens and cmd_tokens:
             # Currently a blank line so the first token is what we want.
             token = cmd_tokens[0]
+          # Does our line match this command completion candidate.
+          elif (
+            len(cmd_tokens) > len(line_tokens) and
+            re.match(' '.join(cmd_tokens[:len(line_tokens)]), cleaned_line)):
+            # Take the token from off the end of the Completer command.
+            token = cmd_tokens[len(line_tokens)]
           else:
             continue
-          # We have found a match.
-          # Remove completer syntax.
-          token = re.sub(r'\(|\)\?', '', token)
+  
+          # We have found a match. Remove completer syntax.
+          token = _ScrubToken(token)
           # If on word boundary or our current word is a partial match.
           if word_boundary or token.startswith(current_word):
-            if token not in self._completer_list:
-              self._completer_list.append(token)
+            _completer_set.add(token)
+      self._completer_list = list(_completer_set)
+      self._completer_list.sort()
+          
 
-    try:
+    if state < len(self._completer_list):
       return self._completer_list[state]
-    except IndexError:
-      return None
+    return None
 
   def ParseCommands(self, commands: str) -> None:
     """Parses commands and executes them.
