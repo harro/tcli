@@ -63,6 +63,7 @@ flags.DEFINE_integer(
 
 FLAGS = flags.FLAGS
 
+
 def SetFlagDefaults(cli_parser: command_parser.CommandParser) -> None:
   """Calls TCLI commands with flags values as the default."""
 

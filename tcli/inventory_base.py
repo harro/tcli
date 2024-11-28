@@ -176,6 +176,7 @@ class Inventory(object):
     # Filters and exclusions added by this library.
     logging.debug(
       f'Device attributes globally defined: "{DEVICE_ATTRIBUTES}".')
+
     #TODO(#35): Compare against reserved words and raise exception if a dup.
     for attr in DEVICE_ATTRIBUTES:
       # TODO(#36): Add support for filtering on flag values.
