@@ -176,18 +176,18 @@ class UnitTestTCLI(unittest.TestCase):
   def testTildeCompleter(self):
     """Tests completing TCLI native commands."""
 
-    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 0), '/record')
+    self.assertEqual(self.tcli_obj._TildeCompleter('/reco', 0), '/record')
     self.assertEqual(
-      self.tcli_obj._TildeCompleter('reco', 1), f'/record{APPEND}')
-    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 2), '/recordall')
+      self.tcli_obj._TildeCompleter('/reco', 1), f'/record{APPEND}')
+    self.assertEqual(self.tcli_obj._TildeCompleter('/reco', 2), '/recordall')
     self.assertEqual(
-      self.tcli_obj._TildeCompleter('reco', 3), f'/recordall{APPEND}')
-    self.assertEqual(self.tcli_obj._TildeCompleter('reco', 4), '/recordstop')
-    self.assertIsNone(self.tcli_obj._TildeCompleter('reco', 5))
+      self.tcli_obj._TildeCompleter('/reco', 3), f'/recordall{APPEND}')
+    self.assertEqual(self.tcli_obj._TildeCompleter('/reco', 4), '/recordstop')
+    self.assertIsNone(self.tcli_obj._TildeCompleter('/reco', 5))
     # Complete on command arguments.
-    self.assertEqual(self.tcli_obj._TildeCompleter('safemode ', 0), 'on')
+    self.assertEqual(self.tcli_obj._TildeCompleter('/safemode ', 0), 'on')
     # Complete on command arguments for short names.
-    self.assertEqual(self.tcli_obj._TildeCompleter('S ', 0), 'on')
+    self.assertEqual(self.tcli_obj._TildeCompleter('/S ', 0), 'on')
 
   def testCmdCompleter(self):
     with mock.patch.object(tcli.inventory, 'Inventory'):
@@ -242,7 +242,7 @@ class UnitTestTCLI(unittest.TestCase):
     self.tcli_obj.cmd_response.SetRequest(1, 4)
     self.tcli_obj.cmd_response._row_response[0] = []
 
-    self.tcli_obj.inventory.device_list = set(['device_a', 'device_b'])             # type: ignore
+    self.tcli_obj.inventory.device_list = set(['device_a', 'device_b'])         # type: ignore
     self.tcli_obj.command_list = ['cat alpha', 'cat beta']                      # type: ignore
 
     # Call with valid uid and check response count increments.

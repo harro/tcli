@@ -259,7 +259,7 @@ class TCLI(object):
 
     if full_line and full_line.startswith(SLASH):
       # Drop the slash before passing the command.
-      return self._TildeCompleter(full_line[1:], state)
+      return self._TildeCompleter(full_line, state)
 
     # If not a TCLI command, or an empty prompt, then return completions for 
     # known remote device commands that we support with TextFSM.
@@ -779,6 +779,8 @@ class TCLI(object):
   def _TildeCompleter(self, full_line: str, state: int) -> str|None:
     """Command line completion for escape commands."""
 
+    # Remove the leading slash.
+    full_line = full_line[1:]
     completer_list = []
     # We have a complete TCLI command.
     # Ignore get_completer_delims, we only use spaces as separators.
@@ -812,7 +814,7 @@ class TCLI(object):
     completer_list.sort()
 
     if state < len(completer_list):
-      # Re-apply TILDE to completion.
+      # Re-apply slash to completion.
       return SLASH + completer_list[state]
     return None
 
