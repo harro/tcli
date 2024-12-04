@@ -12,8 +12,6 @@
 # implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# Lint as: python3
-
 """Unittest for tcli script."""
 
 import collections
@@ -173,56 +171,6 @@ class UnitTestTCLI(unittest.TestCase):
     self.assertEqual(tcli.FLAGS.color, self.tcli_obj.color)
     self.assertEqual(tcli.FLAGS.timeout, self.tcli_obj.timeout)
 
-  def testTCLICompleter(self):
-    """Tests completing TCLI native commands."""
-
-    self.assertEqual(self.tcli_obj._TCLICompleter('/reco', 0), '/record')
-    self.assertEqual(
-      self.tcli_obj._TCLICompleter('/reco', 1), f'/record{APPEND}')
-    self.assertEqual(self.tcli_obj._TCLICompleter('/reco', 2), '/recordall')
-    self.assertEqual(
-      self.tcli_obj._TCLICompleter('/reco', 3), f'/recordall{APPEND}')
-    self.assertEqual(self.tcli_obj._TCLICompleter('/reco', 4), '/recordstop')
-    self.assertIsNone(self.tcli_obj._TCLICompleter('/reco', 5))
-    # Complete on command arguments.
-    self.assertEqual(self.tcli_obj._TCLICompleter('/safemode ', 0), 'on')
-    # Complete on command arguments for short names.
-    self.assertEqual(self.tcli_obj._TCLICompleter('/S ', 0), 'on')
-
-  def testCmdCompleter(self):
-    with mock.patch.object(tcli.inventory, 'Inventory'):
-      self.tcli_obj = tcli.TCLI()
-    self.tcli_obj.filter = 'default'
-    clitable.CliTable.INDEX = {}
-    self.tcli_obj.filter_engine = clitable.CliTable(
-        'default_index', template_dir=tcli.FLAGS.template_dir)
-    self.tcli_obj._Print = mock.Mock()
-
-    # Completions are alphabetical.
-    self.assertEqual('cat', self.tcli_obj._CmdCompleter('', 0))
-    self.assertEqual('show', self.tcli_obj._CmdCompleter('', 1))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('', 2))
-
-    self.assertEqual('cat', self.tcli_obj._CmdCompleter('c', 0))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('c', 1))
-
-    self.assertEqual('alpha', self.tcli_obj._CmdCompleter('c ', 0))
-    self.assertEqual('beta', self.tcli_obj._CmdCompleter('c ', 1))
-    self.assertEqual('epsilon', self.tcli_obj._CmdCompleter('c ', 2))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('c ', 3))
-
-    self.assertEqual('alpha', self.tcli_obj._CmdCompleter('c al', 0))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('c al', 1))
-
-    # Regular expressions appear as valid completions.
-    self.assertEqual('int.+', self.tcli_obj._CmdCompleter('show ', 0))
-    self.assertEqual('brief', self.tcli_obj._CmdCompleter('show int.+ ', 0))
-    # If an argument satisfies a regexp then completions work past that point.
-    self.assertEqual('brief', self.tcli_obj._CmdCompleter('show int01 ', 0))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('show int00 ', 1))
-    self.assertEqual('.+', self.tcli_obj._CmdCompleter('show int01 brief ', 0))
-    self.assertIsNone(self.tcli_obj._CmdCompleter('show int00 brief yes', 1))
-
   def testCallback(self):
     """Tests async callback."""
 
@@ -287,11 +235,11 @@ class UnitTestTCLI(unittest.TestCase):
     # Should point at next row (2).
     self.assertEqual(self.tcli_obj.cmd_response._current_row, 2)
 
-  def testFormatRaw(self):
+  def testDisplayRaw(self):
     """Test display of raw output."""
 
     with mock.patch.object(self.tcli_obj, '_Print') as mock_print:
-      self.tcli_obj._FormatRaw(
+      self.tcli_obj._DisplayRaw(
           inventory.Response(
               device_name='device1', command='time of day',
               data='a random\nmulti line\nstring.', error='', uid=''))
@@ -299,9 +247,6 @@ class UnitTestTCLI(unittest.TestCase):
           mock.call('#!# device1:time of day #!#', 'title'),
           mock.call('a random\nmulti line\nstring.')
       ])
-
-  def testFormatRawResponse(self):
-    """Tests display of raw command results."""
 
     self.tcli_obj.cmd_response._results[1] = inventory.Response(
         uid=1, device_name='device_1', data='hello world\n',
@@ -737,7 +682,7 @@ class UnitTestTCLI(unittest.TestCase):
     # A bad format.
     self.tcli_obj.display = 'notaformat'
     self.assertRaises(tcli.TcliCmdError,
-                      self.tcli_obj._DisplayTable, 'boo')
+                      self.tcli_obj._DisplayFormatted, 'boo')
 
   def testAlphaNumBuffer(self):
 

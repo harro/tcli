@@ -36,6 +36,7 @@ try:
 except(ImportError):
   import readline
 
+from tcli import command_completer as completer
 from tcli import command_parser
 from tcli import command_register
 from tcli import command_response
@@ -176,7 +177,6 @@ class TCLI(object):
 
     # Async callback.
     self._lock = threading.Lock()
-    self._completer_list: list[str] = []
     self.interactive = interactive
     self.inventory = inventory
     self.filter_engine = None
@@ -258,12 +258,14 @@ class TCLI(object):
     full_line = readline.get_line_buffer().lstrip()                             # type: ignore
 
     if full_line and full_line.startswith(SLASH):
-      # Drop the slash before passing the command.
-      return self._TCLICompleter(full_line, state)
+      if not self.cli_parser: return None
+      # Return completions for matching TCLI commands.
+      return completer.TCLICompleter(full_line, state, self.cli_parser)
 
     # If not a TCLI command, or an empty prompt, then return completions for 
     # known remote device commands that we support with TextFSM.
-    return self._CmdCompleter(full_line, state)
+    if not self.filter_engine: return None
+    return completer.CmdCompleter(full_line, state, self.filter_engine)
 
   def Motd(self) ->None:
     """Display message of the day."""
@@ -309,82 +311,6 @@ class TCLI(object):
       while row:
         self._FormatRow(row, pipe)
         (row, pipe) = self.cmd_response.GetRow()
-
-  def _CmdCompleter(self, full_line: str, state: int) -> str|None:
-    """Commandline completion used by readline library."""
-
-
-    def _ScrubToken(token: str) -> str:
-      """Remove nested (...)? from command completion string."""
-      # This could break legitimate regexps but since these are completion
-      # candidates, That breakage is cosmetic.
-      _reg_exp_str = r'\((?P<value>.*)\)\?'
-      clean_token = re.sub(_reg_exp_str, '\g<value>', token)                    # type: ignore
-      # Repeat until all nested (...)? are removed.
-      while token != clean_token:
-        token = clean_token
-        clean_token = re.sub(_reg_exp_str, '\g<value>', clean_token)            # type: ignore
-      return token
-
-    # First invocation, so build candidate list and cache for re-use.
-    if state == 0:
-      _completer_set = set()
-      current_word = ''
-      line_tokens = []
-      word_boundary = False
-      # What has been typed so far.
-
-      # Collapse quotes to remove any whitespace within.
-      cleaned_line = re.sub(r'\".+\"', '""', full_line)
-      cleaned_line = re.sub(r'\'.+\'', '""', cleaned_line)
-      # Remove double spaces etc
-      cleaned_line = re.sub(r'\s+', ' ', cleaned_line)
-
-      # Are we part way through typing a word, or a word boundary.
-      if cleaned_line and cleaned_line.endswith(' '):
-        word_boundary = True
-
-      cleaned_line = cleaned_line.rstrip()
-      # If a blank line then this is also a word boundary.
-      if not cleaned_line:
-        word_boundary = True
-      else:
-        # Split into word tokens.
-        line_tokens = cleaned_line.split(' ')
-        # If partially through typing a word then don't include it as a token.
-        if not word_boundary and line_tokens:
-          current_word = line_tokens.pop()
-
-      # Compare with table of possible command matches in filter_engine.
-      if self.filter_engine:
-        for row in self.filter_engine.index.index:                              # type: ignore
-          # Split the command match into tokens.
-          cmd_tokens = row['Command'].split(' ')
-          # Does the line match the partial list of tokens.
-          if not line_tokens and cmd_tokens:
-            # Currently a blank line so the first token is what we want.
-            token = cmd_tokens[0]
-          # Does our line match this command completion candidate.
-          elif (
-            len(cmd_tokens) > len(line_tokens) and
-            re.match(' '.join(cmd_tokens[:len(line_tokens)]), cleaned_line)):
-            # Take the token from off the end of the Completer command.
-            token = cmd_tokens[len(line_tokens)]
-          else:
-            continue
-  
-          # We have found a match. Remove completer syntax.
-          token = _ScrubToken(token)
-          # If on word boundary or our current word is a partial match.
-          if word_boundary or token.startswith(current_word):
-            _completer_set.add(token)
-      self._completer_list = list(_completer_set)
-      self._completer_list.sort()
-          
-
-    if state < len(self._completer_list):
-      return self._completer_list[state]
-    return None
 
   def _CmdRequests(self, device_list:list[str], command_list:list[str],
                   explicit_cmd:bool=False) -> None:
@@ -453,7 +379,8 @@ class TCLI(object):
                   msgtype='warning')
     logging.debug('CmdRequests: All callbacks completed.')
 
-  def _DisplayTable(self, result: clitable.CliTable, pipe: str = '') -> None:
+  def _DisplayFormatted(
+      self, result: clitable.CliTable, pipe: str = '') -> None:
     """Displays output in tabular form."""
 
     if self.display == 'csv':
@@ -480,19 +407,19 @@ class TCLI(object):
       raise TcliCmdError('Unsupported display format: %s.' %
                          repr(self.display))
 
-  def _FormatErrorResponse(self, response: inventory.Response) -> None:
-    """Formatted error derived from response."""
-
-    self._Header(f'{response.device_name}:{response.command}', 'warning')
-    self._Print(response.error, 'warning')
-
-  def _FormatRaw(self, response: inventory.Response, pipe: str = '') -> None:
+  def _DisplayRaw(self, response: inventory.Response, pipe: str = '') -> None:
     """Display response in raw format."""
 
     # Do nothing with raw output other than tagging
     # Which device/command generated it.
     self._Header(f'{response.device_name}:{response.command}')
     self._Print(self._Pipe(response.data, pipe=pipe))
+
+  def _FormatErrorResponse(self, response: inventory.Response) -> None:
+    """Formatted error derived from response."""
+
+    self._Header(f'{response.device_name}:{response.command}', 'warning')
+    self._Print(response.error, 'warning')
 
   def _FormatRow(self, response_uid_list: list[int], pipe: str = '') -> None:
     """Display the results from a list of responses (a row)."""
@@ -518,7 +445,7 @@ class TCLI(object):
         continue
 
       if self.display == 'raw':
-        self._FormatRaw(response, pipe=pipe)
+        self._DisplayRaw(response, pipe=pipe)
         continue
 
       # Build a CliTable attribute filter from the response.
@@ -553,7 +480,7 @@ class TCLI(object):
                       response.device_name)
         self._Print(error_message, msgtype='warning')
         # If unable to parse then output as raw.
-        self._FormatRaw(response, pipe=pipe)
+        self._DisplayRaw(response, pipe=pipe)
         continue
 
       # Add host column to row, as single table may have
@@ -575,7 +502,7 @@ class TCLI(object):
     for command_tbl in result:
       if FLAGS.sorted:
         result[command_tbl].sort()
-      self._DisplayTable(result[command_tbl], pipe=pipe)
+      self._DisplayFormatted(result[command_tbl], pipe=pipe)
 
   def _Header(self, header: str = '', msgtype: str = 'title') -> None:
     """Formats header string."""
@@ -775,48 +702,6 @@ class TCLI(object):
     # pylint: disable=broad-except
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
-
-  def _TCLICompleter(self, full_line: str, state: int) -> str|None:
-    """Command line completion for escape commands."""
-
-    # Remove the leading slash.
-    full_line = full_line[1:]
-    completer_list = []
-    # We have a complete TCLI command.
-    # Ignore get_completer_delims, we only use spaces as separators.
-    if ' ' in full_line:
-      word_sep = full_line.index(' ')         # Word boundary.
-      (cmd_name, arg_string) = (full_line[:word_sep], full_line[word_sep +1:])
-
-      # If we have a shortname, expand it before continuing.
-      if len(cmd_name) == 1:
-        for cname in self.cli_parser:
-          if self.cli_parser[cname].short_name is cmd_name:
-            cmd_name = cname
-
-      # Compare the subsequent arguments with the specific command completer.
-      if cmd_name in self.cli_parser:
-        for arg_option in self.cli_parser[cmd_name].completer():
-          if arg_option.startswith(arg_string):
-            completer_list.append(arg_option)
-
-      if state < len(completer_list):
-        return completer_list[state]
-      return None
-
-    # Partial, or whole command word with no arguments.
-    for cmd_name in self.cli_parser:
-      if cmd_name.startswith(full_line):
-        completer_list.append(cmd_name)
-        if (cmd_name in self.cli_parser and self.cli_parser[cmd_name].append):
-          # Add the apend option of the command to the list
-          completer_list.append(cmd_name + command_parser.APPEND)
-    completer_list.sort()
-
-    if state < len(completer_list):
-      # Re-apply slash to completion.
-      return SLASH + completer_list[state]
-    return None
 
   ##############################################################################
   # Registered Commands.                                                       #
