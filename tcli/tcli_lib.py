@@ -259,7 +259,7 @@ class TCLI(object):
 
     if full_line and full_line.startswith(SLASH):
       # Drop the slash before passing the command.
-      return self._TildeCompleter(full_line, state)
+      return self._TCLICompleter(full_line, state)
 
     # If not a TCLI command, or an empty prompt, then return completions for 
     # known remote device commands that we support with TextFSM.
@@ -437,7 +437,7 @@ class TCLI(object):
         self.cmd_response.SetRequest(cmd_row_id, req.uid)
         requests.append(req)
 
-    # Submit command request to inventory manager for each host.
+    # Submit command request to inventory manager for each device.
     requests_callbacks = [(req, self._Callback) for req in requests]
     # Setup progress indicator.
     self.cmd_response.StartIndicator()
@@ -597,7 +597,7 @@ class TCLI(object):
     """Parses commands and executes them.
 
     Splits commands on line boundary and forwards to either the:
-      - TildeCmd the method for resolving TCLI commands.
+      - TCLICmd the method for resolving TCLI commands.
       - CmdRequests the method for sending commands to the backend.
 
     Args:
@@ -776,7 +776,7 @@ class TCLI(object):
     except ValueError as error_message:
       self._Print(str(error_message), msgtype='warning')
 
-  def _TildeCompleter(self, full_line: str, state: int) -> str|None:
+  def _TCLICompleter(self, full_line: str, state: int) -> str|None:
     """Command line completion for escape commands."""
 
     # Remove the leading slash.
