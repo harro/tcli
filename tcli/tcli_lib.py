@@ -1053,7 +1053,7 @@ class TCLI(object):
       raise ValueError(str(error_message))
 
     return f"{content.count('\n')} lines written."
-
+  
   # pylint: enable=unused-argument
   ##############################################################################
   # End of command handles.                                                    #
